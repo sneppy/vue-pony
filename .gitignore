@@ -1,0 +1,6 @@
+# Ignore generated files and folders
+/node_modules/
+/DS_Store
+
+# Ignore output dir
+/dist/
