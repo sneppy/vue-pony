@@ -106,7 +106,7 @@ export default function Set(matrix) {
 		{
 			// Compute set key and uri
 			const key = [matrix.index(), owner._index(), owner._pk.join(',')].join('.')
-			const uri = owner._uri('/' + matrix.index())
+			const uri = owner._uri(matrix.uri())
 			
 			// Get from cache or fetch from server
 			let record = store.get(key) || store.set(key, new Record([]))

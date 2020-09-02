@@ -1,5 +1,5 @@
 {
-  "name": "vue-pony",
+  "name": "@sneppy/vue-pony",
   "version": "1.0.0",
   "description": "Object-oriented REST API interface, inspired by PonyORM",
   "main": "dist/index.js",

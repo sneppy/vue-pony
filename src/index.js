@@ -1,9 +1,10 @@
 import { identity } from 'lodash'
-import { watchEffect } from 'vue'
+import { watchEffect, computed } from 'vue'
 import Model from './model'
 import Set from './set'
 import request from './request'
 import Store from './store'
+import Required from './required'
 
 /**
  * 
@@ -44,6 +45,14 @@ export default class Pony
 	{
 		return Set.bind(this)
 	}
+
+	/**
+	 * 
+	 */
+	get Required()
+	{
+		return Required.bind(this)
+	}
 }
 
 let api = new Pony({
@@ -56,26 +65,67 @@ let api = new Pony({
 	base: 'http://sneppy.ddns.net:5000/api/v1'
 })
 
+class Image extends api.Model
+{
+	static uri()
+	{
+		return '/util' + super.uri(...arguments)
+	}
+}
+
 class User extends api.Model
 {
-	static get posts()
-	{
-		return api.Set(Post)
-	}
+	///
+	static image = Image
 }
 
 class Adventure extends api.Model
 {
-	static get posts()
+	///
+	static owner = User
+	
+	/**
+	 * 
+	 */
+	static get members()
 	{
-		return api.Set(Post)
+		return api.Set(AdventureMember)
 	}
+}
+
+class AdventureMember extends api.Model
+{
+	///
+	static adventure = Adventure
+
+	///
+	static user = User
 }
 
 class Post extends api.Model
 {
+	///
 	static author = User
+
+	///
+	static get commits()
+	{
+		return api.Set(PostCommit)
+	}
+
+	///
+	static get head()
+	{
+		return api.Required(PostCommit, {
+			mapping: (post) => [post.id, post._data.head]
+		})
+	}
 }
 
-let posts = Post.get()
-watchEffect(() => console.log(posts[1].title))
+class PostCommit extends api.Model
+{
+	///
+	static post = Post
+}
+
+let user = User.get(1)

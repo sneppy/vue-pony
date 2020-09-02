@@ -1,4 +1,4 @@
-import { isEmpty } from "lodash"
+import { isEmpty, isFunction, map } from "lodash"
 import { arrify } from './utils'
 import { SetType } from "./set"
 import Record from './record'
@@ -49,13 +49,14 @@ export default function Model() {
 					{
 						if (proto.constructor[prop].prototype instanceof ModelType)
 						{
-							// Get model prototype
+							// Get model prototype and mapping
 							const matrix = proto.constructor[prop]
+							const { mapping = prop } = matrix
 
-							if (!isEmpty(target._data) && prop in target._data)
+							if (!isEmpty(target._data) && (isFunction(mapping) || mapping in target._data))
 							{
 								// Get model constructor and key
-								const key = target._data[prop]
+								const key = isFunction(mapping) ? mapping(receiver) : target._data[mapping]
 
 								// Return model from cache if any
 								return matrix.get(...arrify(key))

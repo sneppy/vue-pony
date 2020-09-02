@@ -1,78 +1,151 @@
-# vue-pop
+# vue-pony
 
-**vue-pop** is a intuitive and easy to use interface to interact with your REST API.
+**vue-pony** is a intuitive and easy to use interface to interact with your REST API.
+
+When designing this library I was inspired by [PonyORM](https://ponyorm.org/), an awesome ORM library for Python that I use for my backend.
 
 > DISCLAIMER: I develop this project for my personal use. I won't generally be accepting any pull request and I'm not going to actively look into open issues. You are free to use this package as-is if you like it.
 
 Usage example
 -------------
 
-General usage
+_vue-pony_ assumes that the REST API conforms to a certain structure, as explained below:
 
 ```javascript
 import Pony from 'vue-pony'
 
-export const api = new Pony({
-	host: 'https://api.your.io'
+// Create a new Pony instance
+let api = new Pony({
+	base: 'https://api.your.io' // Base URL for api endpoints, e.g. `https://api.your.io/user/1`
 })
 
-/**
- * Define a new class that extends
- * base model
- */
-export class User extends api.Model
+// The `api.Model` class must be
+// extended to create entities
+// such as users, posts, comments,
+// etc.
+class User extends api.Model
 {
-	// That's it really
+	// By default, Pony assigns an
+	// index to models equal to the
+	// lowercase class name, `user`
+	// in this case.
+	// This index is used to build
+	// the resource URI.
+
+	// Static methods and properties
+	// are used to define relationships
+	// within entities.
+	static get posts()
+	{
+		// A set is a collection of entities.
+		// Pony assumes that the URI `user/1/post`
+		// returns a list of post indices, e.g.
+		// `[1, 5, 10, 21, 22]`.
+		return api.Set(Post)
+	}
+
+	// We use getters when the model
+	// has not yet been defined.
+	static get comments()
+	{
+		return api.Set(Comment)
+	}
 }
 
-/**
- * 
- */
-export class Post extends api.Model
+class Post extends api.Model
 {
-	// Use static methods to define
-	// entity-to-entity relationships
+	// Here, Pony assumes that in the
+	// post data there's a property
+	// named `author` with the id of
+	// the user.
 	static author = User
+
+	static get comments()
+	{
+		return api.Set(Comment)
+	}
 }
 
-// Fetch post by id
-Post.fetch(1).then((post) => {
+class Comment extends api.Model
+{
+	// If the class name differs from the name
+	// of the actual property, we may use the
+	// `Required` helper to specify mapping
+	// options.
+	// The relationship is still accessed as
+	// `comment.author`.
+	static author = api.Required(User, {
+		mapping: 'user' // Instead of `author`
+	})
 
-	// This returns an empty instance
-	// that will be filled, and it is
-	// fully reactive
-	let user = post.user
+	// Alternatively a mapping may be specified
+	// as a function that receives this instance
+	static post = api.Required(Post, {
+		mapping: (comment) => comment.postId // Instead of `post`
+	})
+}
 
-	// Use `.wait()` to wait for it
-	user.wait().then((user) => console.log(user.username))
-})
+// Export models
+export { User, Post, Comment }
+```
+
+General usage:
+
+```javascript
+import { watchEffect } from 'vue' // Vue 3.x
+import { User } from '@/api' // Import models from api definition
+
+// Get user with id 1
+let user = User.get(1)
+
+// Call is synchronous, thus if you
+// log user data it will print `undefined`
+console.log(user.username)
+
+// However we can leverage the reactivity
+// with Vue's `watchEffect`
+watchEffect(() => console.log(user.username)) // Eventually it will log the username
+
+// The same applies to relationships
+let post = Post.get(1)
+watchEffect(() => console.log(post.author && post.author.username))
 ```
 
 Inside a Vue component:
 
-```javascript
-import { computed }
-import { User } from '@/api'
+```html
+<template>
+	<div class="post">
+		<div class="author">
+			<span>Created by {{ author.username }}</span>
+		</div>
+
+		<div class="content">
+			{{ post.content }}
+		</div>
+	</div>
+</template>
+
+<script>
+import { Post } from '@/api'
 
 export default {
-	name: 'User',
+	name: 'Post',
 
 	props: {
-		userid: {
-			type: Number,
+		/// Post entity provided as prop
+		post: {
+			type: Post,
 			required: true
 		}
-	}
+	},
 
 	setup(props) {
+		
+		let author = computed(() => post.author)
 
-		// User as computed property
-		let user = computed(() => User.get(props.userid)/* Sync request */)
-
-		// Initially it will be empty, use `.isValid()` to check
-		return { user }
+		return { author }
 	}
 }
+</script>
 ```
-
-Read the [documentation]() for further details.
