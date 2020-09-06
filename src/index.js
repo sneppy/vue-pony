@@ -25,7 +25,7 @@ export default class Pony
 
 		// Create authorizer
 		this.authorizer = authorizer
-		this.authorize = authorizer && authorizer.authorize.bind(authorizer) || identity
+		if (this.authorizer) this.authorize = this.authorizer && this.authorizer.authorize.bind(authorizer)
 	}
 
 	/**

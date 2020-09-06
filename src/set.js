@@ -1,6 +1,5 @@
 import { arrify } from './utils'
 import Record from "./record"
-import request from "./request"
 
 /**
  * 

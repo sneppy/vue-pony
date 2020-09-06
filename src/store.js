@@ -2,12 +2,17 @@ import { createHash } from 'crypto'
 import { reactive } from 'vue'
 
 /**
+ *
+ */
+const defaultHashFn = (key) => createHash('md5').update(key).digest('hex')
+
+/**
  * 
  */
 export default function Store(options = {}) {
 
 	// Get options
-	const { hash = ((key) => '' + key) } = options
+	const { hash = defaultHashFn } = options
 
 	// Reactive store
 	// TODO: Make reactive

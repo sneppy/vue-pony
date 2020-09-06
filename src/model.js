@@ -1,4 +1,4 @@
-import { isEmpty, isFunction, map } from "lodash"
+import { isEmpty, isFunction } from "lodash"
 import { arrify } from './utils'
 import { SetType } from "./set"
 import Record from './record'
