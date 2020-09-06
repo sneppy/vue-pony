@@ -51,4 +51,18 @@ export default class Pony
 	{
 		return Required.bind(this)
 	}
+
+	/**
+	 *
+	 */
+	auth(...args)
+	{
+		// Use authorizer method if any
+		if (this.authorizer) return this.authorizer.auth(...args)
+		else
+		{
+			console.warn('No authorizer object defined on api instance')
+			return true
+		}
+	}
 }

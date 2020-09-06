@@ -52,15 +52,12 @@ export default function Model() {
 							// Get model prototype and mapping
 							const matrix = proto.constructor[prop]
 							const { mapping = prop } = matrix
+							
+							// Get alias
+							const alias = isFunction(mapping) ? mapping(receiver) : target._data[mapping]
 
-							if (!isEmpty(target._data) && (isFunction(mapping) || mapping in target._data))
-							{
-								// Get model constructor and key
-								const key = isFunction(mapping) ? mapping(receiver) : target._data[mapping]
-
-								// Return model from cache if any
-								return matrix.get(...arrify(key))
-							}
+							// Return model from cache if any
+							return matrix.get(...arrify(alias))
 						}
 						else if (proto.constructor[prop].prototype instanceof SetType)
 						{
