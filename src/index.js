@@ -1,5 +1,5 @@
 import { Mutex } from 'async-mutex'
-import Model, { isModel } from './model'
+import Model from './model'
 import Set from './set'
 import Required from './required'
 import Store from './store'
@@ -101,5 +101,3 @@ export default class Pony
 		})
 	}
 }
-
-export { request, Model, Set, Required }
