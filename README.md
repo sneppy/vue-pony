@@ -232,3 +232,44 @@ Writing data
 ------------
 
 @todo
+
+API authorization
+-----------------
+
+It is usually the case that requests need to be authorized using some kind of mechanism. When creating a new instance of `Pony` provide an authorization method in the constructor:
+
+```javascript
+const authorize = (xhr) => {
+
+	// Example using local storage
+	const token = localStorage.getItem('token')
+	xhr.setRequestHeader('Authorization', 'Bearer ' + token)
+}
+
+let api = new Pony({
+	base: 'https://api.charlie.com',
+	authorize
+})
+```
+
+The method receives the `XMLHttpRequest` instance as its parameter. In the example above, we use the bearer token stored in `localStorage` to authorize subsequent requests, but you may implement a different type of autorization method.
+
+Depending on what kind of authorization mechanism is employed, at some point you may require the user to authenticate itself. This must be done outside the normal flow of _vue-pony_.
+
+However, you can use `Pony.request()` anywhere to create and dispatch requests using the base path and the authorizer specified in the constructor. For example:
+
+```javascript
+export const login = async (username, password) => {
+
+	try
+	{
+		// Store token in local storage
+		const token = await api.request('POST', '/login')({ username, password })()
+		localStorage.setItem('token', token)
+	}
+	catch (err)
+	{
+		alert('Wrong username and/or password')
+	}
+}
+```

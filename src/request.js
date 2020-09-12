@@ -17,7 +17,7 @@ export default function request(base, method, uri, params = {}, headers = {}) {
 	Object.entries(headers).forEach((header) => xhr.setRequestHeader(...header))
 
 	// Authorize request
-	if (!!this && 'authorize' in this) this.authorize(xhr)
+	if (this && this.authorize) this.authorize(xhr)
 
 	// Return request dispatcher
 	return (data) => {

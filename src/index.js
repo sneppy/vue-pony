@@ -16,20 +16,18 @@ export default class Pony
 	 */
 	constructor(options = {})
 	{
-		let { authorizer = null, base = '' } = options
+		let { authorize = null, base = '' } = options
 
 		// Setup request method
 		this.request = request.bind(this, base)
 
 		// Create store
-		// TODO: custom store
 		this.store = Store()
 
-		// Create authorizer
-		this.authorizer = authorizer
-		if (this.authorizer) this.authorize = this.authorizer.authorize.bind(authorizer)
+		// Set authorize method
+		this.authorize = authorize
 
-		// Returns true if ... TODO
+		// When true, access to entity properties return promise
 		this._fetchMode = false
 
 		// Lock used for observer
@@ -63,12 +61,18 @@ export default class Pony
 	/**
 	 *
 	 */
-	_withFetchMode(expression)
+	async _withFetchMode(expression)
 	{
+		// Lock mutex
+		const release = await this._lock.acquire()
+
 		// Evaluate fetch expression
 		this._fetchMode = true
 		let result = expression()
 		this._fetchMode = false
+
+		// Release lock
+		release()
 
 		return result
 	}
@@ -79,21 +83,15 @@ export default class Pony
 	wait(...expressions)
 	{
 		return new Promise(async (resolve, reject) => {
-
-			// Let this code be executed by one worker.
-			const release = await this._lock.acquire()
 			
-			// Evaluate expression
-			let value = expressions.map(this._withFetchMode.bind(this))
-
-			// Release lock
-			release()
+			// Evaluate expressions
+			let results = expressions.map(this._withFetchMode.bind(this))
 
 			// Now we can wait
 			try
 			{
 				// Resolve promise with expression result
-				resolve(dearrify(await Promise.all(value)))
+				resolve(dearrify(await Promise.all(results)))
 			}
 			catch (err)
 			{
@@ -101,33 +99,6 @@ export default class Pony
 				reject(err)
 			}
 		})
-	}
-
-	/**
-	 *
-	 */
-	auth(...args)
-	{
-		// Use authorizer method if any
-		if (this.authorizer) return this.authorizer.auth(...args)
-		else
-		{
-			console.warn('No authorizer object defined on api instance')
-			return true
-		}
-	}
-
-	/**
-	 * 
-	 */
-	check(...args)
-	{
-		if (this.authorizer) return this.authorizer.check(...args)
-		else
-		{
-			console.log('No authorizer object defined on instance')
-			return true
-		}
 	}
 }
 
