@@ -18,8 +18,6 @@ export default function Store(options = {}) {
 	// TODO: Make reactive
 	let store = reactive({})
 
-	window.store = store
-
 	/**
 	 * 
 	 */

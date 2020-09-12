@@ -1,6 +1,6 @@
 # vue-pony
 
-**vue-pony** is a intuitive and easy to use interface to interact with your REST API.
+**vue-pony** is an intuitive and easy to use interface to interact with your REST API.
 
 When designing this library I was inspired by [PonyORM](https://ponyorm.org/), an awesome ORM library for Python that I use for my backend.
 
@@ -16,7 +16,7 @@ import Pony from 'vue-pony'
 
 // Create a new Pony instance
 let api = new Pony({
-	base: 'https://api.your.io' // Base URL for api endpoints, e.g. `https://api.your.io/user/1`
+	base: 'https://api.server.com' // Base URL for api endpoints, e.g. `https://api.server.com/user/1`
 })
 
 // The `api.Model` class must be
@@ -26,11 +26,15 @@ let api = new Pony({
 class User extends api.Model
 {
 	// By default, Pony assigns an
-	// index to models equal to the
-	// lowercase class name, `user`
-	// in this case.
+	// index equal to the lowercase
+	// class name, `user` in this
+	// case.
 	// This index is used to build
 	// the resource URI.
+	// The default `index`, `uri`
+	// and `key` static methods can
+	// be overridden to reflect the
+	// actual endpoint.
 
 	// Static methods and properties
 	// are used to define relationships
@@ -148,4 +152,100 @@ export default {
 	}
 }
 </script>
+```
+
+User authentication
+-------------------
+
+To authenticate requests you need to specify an `authorizer` upon creating the `Pony` instance:
+
+```javascript
+import Pony, { request } from 'pony'
+
+const base = 'https://api.server.com'
+
+/**
+ * An authorizer that stores the user
+ * token in the local storage, so that
+ * it persists across different sessions.
+ */
+class AuthorizerLS
+{
+	/// Returns token from local storage
+	get token()
+	{
+		return localStorage.getItem('token')
+	}
+
+	/// Store token in local storage space
+	set token(token)
+	{
+		localStorage.setItem('token', token)
+	}
+
+	/**
+	 * The `authorize` method is required.
+	 * It is used to authorize outgoing
+	 * requests.
+	 * In this example, we set an
+	 * `Authorization` request header
+	 * with the token of the currently
+	 * authenticated user. Your api auth
+	 * method may differ.
+	 */
+	authorize(xhr)
+	{
+		// Example with a Bearer token
+		const token = localStorage.getItem('token')
+		if (!!token) xhr.setRequestHeader('Authorization', 'Bearer ' + token)
+	}
+
+	/**
+	 * The `auth` method, if present, is
+	 * exposed on the api instance.
+	 */
+	auth(username, password)
+	{
+		try
+		{
+			this.token = await request(base, 'POST', '/login')({ username, password })
+			return true
+		}
+		catch (err)
+		{
+			console.error(err)
+			alert('Wrong username or password')
+			return false
+		}
+	}
+}
+
+// Create api
+let api = new Pony({
+	base,
+	authorizer: new AuthorizerLS
+})
+
+// ...
+// Authenticate
+api.auth('sneppy', 'qwerty')
+```
+
+Waiting for data
+----------------
+
+Sometimes you may prefer to wait for the data to be ready. You can do that using `Model._wait()` method:
+
+```javascript
+let post = Post.get(1)
+post._wait().then((post) => console.log(post.title)) // Log title once data is ready
+```
+
+With `async/await`:
+
+```javascript
+async function getPostTitle() {
+
+	return (await Post.get(1)._wait()).title
+}
 ```

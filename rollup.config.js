@@ -24,6 +24,8 @@ export default {
 	external: [
 		'crypto',
 		'vue',
-		'lodash'
+		'lodash',
+		'async-mutex',
+		'uuid'
 	]
 }

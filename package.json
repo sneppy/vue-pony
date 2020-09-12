@@ -1,6 +1,6 @@
 {
   "name": "@sneppy/vue-pony",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Object-oriented REST API interface, inspired by PonyORM",
   "main": "dist/vue-pony.cjs.js",
   "module": "dist/vue-pony.esm.js",
@@ -47,7 +47,9 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.11.2",
+    "async-mutex": "^0.2.4",
     "lodash": "^4.17.20",
+    "uuid": "^8.3.0",
     "vue": "^3.0.0-rc.4"
   }
 }

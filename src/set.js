@@ -16,6 +16,11 @@ export class SetType
 }
 
 /**
+ *
+ */
+export const isSet = (obj) => obj instanceof SetType
+
+/**
  * 
  */
 export default function Set(matrix) {
