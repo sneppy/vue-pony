@@ -98,6 +98,12 @@ export default function Model() {
 					if (shouldWait()) return wrap(wait((self) => self[prop]))
 					
 					// Get model prop...
+					if (prop === '_self')
+					{
+						// Return self
+						return receiver
+					}
+					
 					if (prop in proto.constructor)
 					{
 						if (isModel(proto.constructor[prop].prototype))
