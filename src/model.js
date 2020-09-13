@@ -75,7 +75,7 @@ export default function Model() {
 								// Await future value
 								let future = await target
 
-								if (isModel(future))
+								if (isModel(future) || isSet(future))
 								{
 									// Return future value of `model[prop]`
 									return await future._wait((model) => model[prop])
@@ -257,6 +257,14 @@ export default function Model() {
 			}
 			
 			return model
+		}
+
+		/**
+		 * 
+		 */
+		static fetch(...alias)
+		{
+			return this.get(...alias)._wait()
 		}
 	}
 }

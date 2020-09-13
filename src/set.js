@@ -36,7 +36,7 @@ export default function Set(matrix) {
 		/**
 		 * 
 		 */
-		constructor(indices)
+		constructor(indices, record = null)
 		{
 			return new Proxy(super(indices), {
 				/**
@@ -44,9 +44,17 @@ export default function Set(matrix) {
 				 */
 				get(target, prop, receiver) {
 
+					/**
+					 *
+					 */
+					const wait = async (then = identity) => (await record.waitReady(), then(receiver))
+
+					// TODO: In order to work inside `_withFetchMode` we should override iterator as well
+
 					// Make iterable
 					if (prop === Symbol.iterator)
 					{
+						// Return model generator function
 						return function*() {
 							
 							for (let idx = 0, len = target._indices.length || 0; idx < len; ++idx)
@@ -54,7 +62,14 @@ export default function Set(matrix) {
 								yield matrix.get(...arrify(target._indices[idx]))
 						}
 					}
-					else if (false) // TODO: Allow to get model properties as arrays
+					
+					// Returns wait method
+					if (prop === '_wait' && !!record && record instanceof Record) return wait
+
+					// Returns self, used to force property access
+					if (prop === '_self') return receiver
+
+					if (false) // TODO: Allow to get model properties as arrays
 						;
 					else
 					{
@@ -89,38 +104,40 @@ export default function Set(matrix) {
 		static all()
 		{
 			// Compute set key and uri
-			const key = matrix.index()
 			const uri = matrix.uri()
 
 			// Get from cache or fetch from server
-			let record = store.get(key) || store.set(key, new Record([]))
+			let record = store.get(uri) || store.set(uri, new Record([]))
+			let set = new this(record._data, record)
+
 			record.maybeUpdate(async () => {
 
 				let indices = await request('GET', uri)()
 				record._data.splice(0, record._data.length, ...indices)
 			})
 
-			return new this(record._data)
+			return set
 		}
 
 		/**
 		 * 
 		 */
-		static get(owner = null)
+		static get(owner)
 		{
 			// Compute set key and uri
-			const key = [matrix.index(), owner._index(), owner._pk.join(',')].join('.')
-			const uri = owner._uri(matrix.uri())
+			const uri = owner._uri('/' + matrix.index())
 			
 			// Get from cache or fetch from server
-			let record = store.get(key) || store.set(key, new Record([]))
+			let record = store.get(uri) || store.set(uri, new Record([]))
+			let set = new this(record._data, record)
+
 			record.maybeUpdate(async () => {
 
 				let indices = await request('GET', uri)()
 				record._data.splice(0, record._data.length, ...indices)
 			})
 
-			return new this(record._data)
+			return set
 		}
 	}
 }
