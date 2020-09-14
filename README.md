@@ -233,6 +233,65 @@ Writing data
 
 @todo
 
+Sets
+----
+
+`api.Set` represent a collection of entities. A set has one or more indices that identify one or more entities of the same type:
+
+```javascript
+api.Set(Post).all() // Fetch all posts
+```
+
+Sets can be iterated:
+
+```javascript
+for (let post of api.Set(Post).all())
+{
+	api.wait(() => post.author.username).then(console.log) // Print username of all authors
+}
+```
+
+`api.Set` supports random access as well:
+
+```javascript
+api.wait(() => posts[0]._self).then(console.log)
+```
+
+Any array method or property (such as `filter`, `map`, `forEach`, or `length`) can be invoked on the set:
+
+```javascript
+posts.forEach((post) => api.wait(() => post.author.username).then(console.log))
+console.log(posts.length)
+```
+
+Bear in mind that the return value of `map`, `filter`, and similar methods is of type `Array` rather than `api.Set`.
+
+As with `Model`, we can wait for a set with `Set._wait()`. Sets can also have partial support for `api.wait()`, but only when accessed as a property of an entity:
+
+```javascript
+api.wait(() => User.get(1).posts.length).then(console.log)
+// Not like this
+api.wait(() => api.Set(Post).all().length).then(console.log)
+```
+
+Sets can be populated using three static methods, or relative aliases, as shown below:
+
+| Method | Description | Alias | Request |
+| ------ | ----------- | ----- | ------- |
+| `api.Set(Type).all()` | Fetch all entities of type `Type` | `Type.get()` with no parameters | `Type.uri()` with no parameters (e.g. `/type`) |
+| `api.Set(Type).in(other)` | One-to-many relationship | `other.types` with `class Other extends api.Model { static types = api.Set(Type) }` | `Other.uri([], '/' + Type.index())` (e.g. `/other/1/type`) |
+| `api.Set(Type).search(query)` | Asynchronous search | `Type.search(query)` | `Type.uri([], '/search')` (e.g. `/type/search`) |
+
+The `api.Set.search()` method is asynchronous and doesn't use the reactive store, which means you cannot use Vue reactivity on the set. However, you can use reactivity on the single entities:
+
+```javascript
+import { watchEffect } from 'vue'
+
+api.Set(Post).search({
+	title: 'Snoopy'
+}).then((posts) => watchEffect(() => console.log(posts.map((post) => post.author.username))))
+```
+
 API authorization
 -----------------
 

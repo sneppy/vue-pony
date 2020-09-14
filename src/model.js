@@ -124,7 +124,7 @@ export default function Model() {
 							const set = proto.constructor[prop]
 
 							// Return set from cache if any
-							return set.get(receiver)
+							return set.in(receiver)
 						}
 						else
 							; // * Skip to access other properties
@@ -265,6 +265,14 @@ export default function Model() {
 		static fetch(...alias)
 		{
 			return this.get(...alias)._wait()
+		}
+
+		/**
+		 * 
+		 */
+		static search(query)
+		{
+			return Set(this).search(query)
 		}
 	}
 }
