@@ -191,6 +191,14 @@ export default function Model() {
 		}
 
 		/**
+		 * 
+		 */
+		_equals(other)
+		{
+			return !!this._data && this._data === other._data
+		}
+
+		/**
 		 *
 		 */
 		async _wait()
