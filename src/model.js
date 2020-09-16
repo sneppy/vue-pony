@@ -29,7 +29,14 @@ export default function Model() {
 
 	// Get context request
 	const { Set, request, store } = this
-	const shouldWait = () => !!this._fetchMode // TODO: Replace
+
+	/**
+	 * Returns true if we should fetch
+	 * and wait the model. Forces getter
+	 * to return a proxied promise rather
+	 * than the property itself.
+	 */
+	const shouldFetch = () => !!this._fetchMode // TODO: Replace
 
 	/**
 	 * 
@@ -44,7 +51,16 @@ export default function Model() {
 			// Returns a custom proxied object
 			return new Proxy(super(data), {
 				/**
-				 * 
+				 * Proxy getter.
+				 * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy
+				 *
+				 * This proxy serves three purposes:
+				 * - exposes properties of `_data` object;
+				 * - handles entity-to-entity relationships
+				 *	defined with static methods;
+				 * - if fetch mode is enabled returns a
+				 *	a proxied promise instead of the
+				 *	property itself
 				 */
 				get(target, prop, receiver) {
 					
@@ -61,12 +77,18 @@ export default function Model() {
 					*/
 					const wrap = (future) => new Proxy(future/* This is a Promise */, {
 						/**
-						*
-						*/
+						 *
+						 */
 						get(target, prop, receiver) {
+							
+							// Bypass Promise prototype
+							if (prop in Promise.prototype)
+							{
+								const val = Reflect.get(...arguments)
 
-							// TODO: Bypass Promise prototype
-							if (prop === 'then') return target.then.bind(target)
+								// * Necessary for `Promise.then` and similar
+								return isFunction(val) ? val.bind(target) : val
+							}
 
 							// TODO: May cause problems with nested objects (e.g. `adventure.settings.roles`)
 							// TODO: Handle `Set`
@@ -91,60 +113,80 @@ export default function Model() {
 					 */
 					const wait = async (then = identity) => (await record.waitReady(), then(receiver))
 
-					// Return wait method
-					if (prop === '_wait' && !!record && record instanceof Record) return wait
-
-					// Wait for record to be ready, return Promise
-					if (shouldWait()) return wrap(wait((self) => self[prop]))
-					
-					// Get model prop...
-					if (prop === '_self')
+					switch (prop)
 					{
-						// Return self
-						return receiver
-					}
-					
-					if (prop in proto.constructor)
-					{
-						if (isModel(proto.constructor[prop].prototype))
-						{
-							// Get model prototype and mapping
-							const matrix = proto.constructor[prop]
-							const { mapping = prop } = matrix
-							
-							// Get alias
-							const alias = isFunction(mapping) ? mapping(receiver) : target._data[mapping]
+						// Returns wait method
+						case '_wait': if (record instanceof Record) return wait
 
-							// Return model from cache if any
-							return matrix.get(...arrify(alias))
-						}
-						else if (isSet(proto.constructor[prop].prototype))
-						{
-							// Get set prototype
-							const set = proto.constructor[prop]
+						default:
+							// If in fetch mode, wait self and wrap property
+							if (shouldFetch())
+							{
+								return wrap(wait((self) => self[prop]))
+							}
+							else
+							{
+								if (prop in proto.constructor)
+								{
+									if (isModel(proto.constructor[prop].prototype))
+									{
+										// Get model prototype and mapping
+										const matrix = proto.constructor[prop]
+										const { mapping = prop } = matrix
+										
+										// Get alias
+										const alias = isFunction(mapping) ? mapping(receiver) : target._data[mapping]
+			
+										// Return model from cache if any
+										return matrix.get(...arrify(alias))
+									}
+									else if (isSet(proto.constructor[prop].prototype))
+									{
+										// Get set prototype
+										const set = proto.constructor[prop]
+			
+										// Return set from cache if any
+										return set.in(receiver)
+									}
+									else
+										; // * Skip to access other properties
+								}
 
-							// Return set from cache if any
-							return set.in(receiver)
-						}
-						else
-							; // * Skip to access other properties
+								if (!isEmpty(target._data) && prop in target._data)
+								{
+									// Return property from model data
+									return target._data[prop]
+								}
+								// Otherwise return class property
+								else return Reflect.get(...arguments)
+							}
 					}
-
-					if (!isEmpty(target._data) && prop in target._data)
-					{
-						// Return property from model data
-						return target._data[prop]
-					}
-					
-					return Reflect.get(...arguments)
 				},
 
 				/**
 				 * 
 				 */
 				set(target, prop, value, receiver) {
+					
+					// Object prototype
+					const proto = Object.getPrototypeOf(target)
 
 					// TODO: Writing of relationships?
+					if (prop in proto.constructor)
+					{
+						if (isModel(proto.constructor[prop].prototype))
+						{
+							// TODO: Handle model writing, mapping must be reviewed							
+							return false
+						}
+						else if (isSet(proto.constructor[prop].prototype))
+						{
+							// TODO: Handle set writing
+							return false
+						}
+						else
+							; // * Skip to write other properties
+					}
 					
 					if (!isEmpty(target._data) && prop in target._data)
 					{
@@ -155,6 +197,16 @@ export default function Model() {
 					else return false
 				}
 			})
+		}
+
+		/**
+		 * Returns reference to self
+		 *
+		 * @returns {ModelType} ref to self
+		 */
+		get _self()
+		{
+			return this
 		}
 
 		/**

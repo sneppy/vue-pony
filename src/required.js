@@ -4,7 +4,7 @@
 export default function Required(matrix, options = {}) {
 
 	// Unpack options
-	const { mapping } = options
+	const { mapping, readonly = false } = options
 
 	/**
 	 * 
@@ -13,11 +13,14 @@ export default function Required(matrix, options = {}) {
 	{
 		static index()
 		{
-			// Avoid using `required`
+			// Prevents using `required`
 			return matrix.index()
 		}
 
 		/// Set mapping property
 		static mapping = mapping
+
+		/// Readonly flag
+		static readonly = readonly
 	}
 }

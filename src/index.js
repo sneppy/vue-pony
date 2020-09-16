@@ -100,4 +100,15 @@ export default class Pony
 			}
 		})
 	}
+	
+	/**
+	 * Vue plugin installation
+	 * 
+	 * @param {Vue} app Vue instance
+	 * @param {Object} options Plugin options
+	 */
+	static install(app, options)
+	{
+		// TODO
+	}
 }

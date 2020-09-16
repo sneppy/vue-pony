@@ -1,4 +1,4 @@
-import { arrify } from './utils'
+import { arrify, parseIdx } from './utils'
 import Record from "./record"
 
 /**
@@ -61,47 +61,62 @@ export default function Set(matrix) {
 
 					// TODO: In order to work inside `_withFetchMode` we should override iterator as well
 
-					// Make iterable
-					if (prop === Symbol.iterator) return iter
-					
-					// Returns wait method
-					if (prop === '_wait' && !!record && record instanceof Record) return wait
-
-					// Returns self, used to force property access
-					if (prop === '_self') return receiver
-
-					if (false) // TODO: Allow to get model properties as arrays
-						;
-					else
+					switch (prop)
 					{
-						try
-						{
-							// Parse prop as array index
-							// TODO: ['3.14'] returns 3 instead of NaN, and I don't like it
-							const idx = Number.parseInt(prop)
-							if (Number.isNaN(idx)) throw TypeError('Expected number, got ' + prop)
+						// Returns wait method
+						case '_wait': if (record instanceof Record) return wait // Otherwise, don't break
 
-							// Return `prop`-th model
-							return matrix.get(...arrify(target._indices[idx]))
-						}
-						catch (err)
-						{
-							if (prop in Array.prototype && !(prop in target))
+						// Returns iterator
+						case Symbol.iterator: return iter
+
+						default:
+							if (false)
+								; // TODO: Allow to get model properties as arrays
+							else
 							{
-								// Create array from set and invoke method
-								return Array.from(this)[prop]
+								try
+								{
+									// Try parsing index and returning i-th model
+									const idx = parseIdx(prop)
+
+									return matrix.get(...arrify(target._indices[idx]))
+								}
+								catch (err)
+								{
+									if (prop in Array.prototype && !(prop in target))
+									{
+										// If prop is an Array property
+										// create array from set and
+										// get property (but not for
+										// certain properties manually
+										// defined like `length` or `map`)
+										return Array.from(this)[prop]
+									}
+									else return Reflect.get(...arguments)
+								}
 							}
-							else return Reflect.get(...arguments)
-						}
 					}
 				},
 
+				/**
+				 *
+				 */
 				has(target, prop) {
 
-					// For iterators
+					// For iterable
 					return (prop === Symbol.iterator) || Reflect.has(...arguments)
 				}
 			})
+		}
+
+		/**
+		 * Returns reference to self
+		 *
+		 * @returns {SetType} ref to self
+		 */
+		get _self()
+		{
+			return this
 		}
 
 		/**
@@ -117,11 +132,11 @@ export default function Set(matrix) {
 		 */
 		map(mapping)
 		{
-			return Array.from(this, mapping, this)
+			return Array.from(this, mapping)
 		}
 
 		/**
-		 * 
+		 *
 		 */
 		forEach(callback)
 		{
@@ -150,18 +165,6 @@ export default function Set(matrix) {
 		}
 
 		/**
-		 * ? Use store or what? For now only async
-		 */
-		static async search(query)
-		{
-			// Search uri
-			const uri = matrix.uri([], '/search')
-			
-			// Return set with results
-			return new this(await request('GET', uri, query)())
-		}
-
-		/**
 		 * 
 		 */
 		static in(owner)
@@ -180,6 +183,18 @@ export default function Set(matrix) {
 			})
 
 			return set
+		}
+
+		/**
+		 * ? Use store or what? For now only async
+		 */
+		static async search(query)
+		{
+			// Search uri
+			const uri = matrix.uri([], '/search')
+			
+			// Return set with results
+			return new this(await request('GET', uri, query)())
 		}
 	}
 }
