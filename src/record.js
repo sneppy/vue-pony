@@ -17,8 +17,9 @@ export default class Record
 		// Record data
 		this._data = data
 
-		// Record flags
-		this._flags = false // TODO: Actually have flags here, when necessary
+		// Record status, matched HTTP status
+		// 0 means no status yet
+		this._status = 0
 
 		// Data lock
 		this._lock = markRaw(new Mutex)
@@ -40,7 +41,7 @@ export default class Record
 	 */
 	get requiresUpdate()
 	{
-		return !this._flags
+		return this._status === 0 || this._status == 401 || this._status > 499
 	}
 
 	/**
@@ -117,8 +118,6 @@ export default class Record
 			{
 				// Handle error
 				this._handleError(err)
-
-				// Set empty flag
 			}
 		}
 
@@ -150,9 +149,6 @@ export default class Record
 			return !once;
 		}
 
-		// Update record state
-		this._flags = true
-
 		// Notify all observers
 		const keys = Object.keys(this._observers); for (let key of keys)
 		{
@@ -182,8 +178,9 @@ export default class Record
 			return !once;
 		}
 
-		// Update record state
-		this._flags = false
+		// Get status
+		let [ , status ] = err
+		this._status = status
 
 		// Notify all observers
 		const keys = Object.keys(this._observers); for (let key of keys)

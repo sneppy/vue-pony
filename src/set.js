@@ -157,8 +157,10 @@ export default function Set(matrix) {
 
 			record.maybeUpdate(async () => {
 
-				let indices = await request('GET', uri)()
+				// Get items and udpate record status
+				let [ indices ] = await request('GET', uri)()
 				record._data.splice(0, record._data.length, ...indices)
+				record._status = status
 			})
 
 			return set
@@ -178,8 +180,10 @@ export default function Set(matrix) {
 
 			record.maybeUpdate(async () => {
 
-				let indices = await request('GET', uri)()
+				// Get items and update record
+				let [ indices, status ] = await request('GET', uri)()
 				record._data.splice(0, record._data.length, ...indices)
+				record._status = status
 			})
 
 			return set
@@ -194,7 +198,8 @@ export default function Set(matrix) {
 			const uri = matrix.uri([], '/search')
 			
 			// Return set with results
-			return new this(await request('GET', uri, query)())
+			const [ results ] = await request('GET', uri, query)()
+			return new this(results)
 		}
 	}
 }

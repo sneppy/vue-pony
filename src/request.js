@@ -60,11 +60,11 @@ export default function request(base, method, uri, params = {}, headers = {}) {
 					case XMLHttpRequest.DONE:
 						if (xhr.status < 300)
 						{
-							resolve(xhr.response)
+							resolve([xhr.response, xhr.status])
 						}
 						else
 						{
-							reject(xhr.response)
+							reject([xhr.response, xhr.status])
 						}
 
 						break

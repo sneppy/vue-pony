@@ -116,7 +116,13 @@ export default function Model() {
 					switch (prop)
 					{
 						// Returns wait method
-						case '_wait': if (record instanceof Record) return wait
+						case '_wait': if (record instanceof Record) return wait; break // Returns undefined
+
+						// Returns true if record status is 200
+						case '_ready': return (record instanceof Record) && record._status === 200
+
+						// Returns true if record status is 4XX or 5XX
+						case '_error': return (record instanceof Record) && record._status > 299
 
 						default:
 							// If in fetch mode, wait self and wrap property
@@ -301,7 +307,7 @@ export default function Model() {
 
 			if (isEmpty(alias.join()))
 			{
-				record.syncUpdate(() => {})
+				record.syncUpdate(() => record._status = 404)
 			}
 			else
 			{
@@ -309,7 +315,9 @@ export default function Model() {
 				record.maybeUpdate(async () => {
 
 					// Fetch data and update record
-					Object.assign(record._data, await request('GET', uri)())
+					let [ data, status ] = await request('GET', uri)()
+					Object.assign(record._data, data)
+					record._status = status
 
 					// Get URI from primary key
 					const pkuri = this.uri(model._pk)
@@ -325,9 +333,22 @@ export default function Model() {
 		/**
 		 * 
 		 */
-		static fetch(...alias)
+		static fetch(uri)
 		{
-			return this.get(...alias)._wait()
+			let record = store.get(uri) || store.set(uri, new Record)
+			let model = new this(record._data, record)
+
+			record.maybeUpdate(async () => {
+
+				// Fetch data and update record
+				let [ data, status ] = await request('GET', uri)()
+				Object.assign(record._data, data)
+				record._status = status
+
+				// ? No alias with fetch?
+			})
+
+			return model
 		}
 
 		/**
