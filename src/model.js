@@ -289,6 +289,9 @@ export default function Model() {
 		{
 			if (alias.length === 0) return Set(this).all()
 
+			// Transform alias
+			alias = alias.reduce((alias, key) => alias.concat(isModel(key) ? key._pk : key), [])
+
 			// Get object key and URI
 			const uri = this.uri(alias)
 
