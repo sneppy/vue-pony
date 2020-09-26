@@ -44,13 +44,22 @@ export default function Store(options = {}) {
 	 */
 	const reset = (key) => {
 
-		let h = hash(key)
+		if (arguments.length === 0)
+		{
+			// Reset all records
+			for (let key in store) delete store[key]
+		}
+		else
+		{
+			let h = hash(key)
 
-		// Pop value
-		let val = store[h]
-		delete store[h]
+			// Pop value from store
+			let val = store[h]
+			delete store[h]
 
-		return val
+			// Return popped value
+			return val
+		}
 	}
 
 	/**
@@ -62,10 +71,11 @@ export default function Store(options = {}) {
 		let g = hash(key)
 
 		// If val is specified, set value for key
-		if (val !== undefined) store[h] = val
+		if (val !== undefined) store[g] = val
 
 		// Store alias and return reactive copy
-		return (store[g] = store[h])
+		store[h] = store[g]
+		return store[h]
 	}
 
 	/**

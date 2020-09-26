@@ -100,6 +100,15 @@ export default class Pony
 			}
 		})
 	}
+
+	/**
+	 *
+	 */
+	resetStore()
+	{
+		// Reset all records
+		this.store.reset()
+	}
 	
 	/**
 	 * Vue plugin installation

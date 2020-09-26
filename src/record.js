@@ -193,6 +193,27 @@ export default class Record
 	/**
 	 *
 	 */
+	reset(data)
+	{
+		// Reset status
+		this._status = 0
+
+		// Reset data with provided data or appropriate empty object
+		this._data = data !== undefined ? data : (Array.isArray(this._data) ? [] : {})
+	}
+
+	/**
+	 *
+	 */
+	invalidate()
+	{
+		// Simply reset status
+		this._status = 0
+	}
+
+	/**
+	 *
+	 */
 	onUpdate(handler, options = {})
 	{
 		// Generate unique id to identify observer

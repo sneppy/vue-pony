@@ -113,6 +113,7 @@ export default function Model() {
 					 */
 					const wait = async (then = identity) => (await record.waitReady(), then(receiver))
 
+					// Switch on prop name
 					switch (prop)
 					{
 						// Returns wait method
@@ -123,6 +124,9 @@ export default function Model() {
 
 						// Returns true if record status is 4XX or 5XX
 						case '_error': return (record instanceof Record) && record._status > 299
+
+						// Resets record status, invalidates data but doesn't actually delete it
+						case '_invalidate': if (record instanceof Record) return record.invalidate.bind(record); break // Returns undefined
 
 						default:
 							// If in fetch mode, wait self and wrap property
@@ -305,8 +309,9 @@ export default function Model() {
 			let record = store.get(uri) || store.set(uri, new Record)
 			let model = new this(record._data, record)
 
-			if (isEmpty(alias.join()))
+			if (alias.some((key) => key === undefined)) // TODO: Test this
 			{
+				// Set status to not found
 				record.syncUpdate(() => record._status = 404)
 			}
 			else
@@ -357,6 +362,24 @@ export default function Model() {
 		static search(query)
 		{
 			return Set(this).search(query)
+		}
+
+		/**
+		 *
+		 */
+		static reset(...alias)
+		{
+			if (alias.length === 0) ; // TODO: Reset set
+
+			// Transform alias
+			alias = alias.reduce((alias, key) => alias.concat(isModel(key) ? key._pk : key), [])
+
+			// Get object URI
+			const uri = this.uri(alias)
+
+			// Try to get record from store and reset
+			let record = store.get(uri)
+			if (record !== undefined) record.reset()
 		}
 	}
 }
