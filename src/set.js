@@ -1,5 +1,6 @@
-import { arrify, parseIdx } from './utils'
+import { arrify, dearrify, parseIdx } from './utils'
 import Record from "./record"
+import { isModel } from './model'
 
 /**
  * 
@@ -196,9 +197,18 @@ export default function Set(matrix) {
 		{
 			// Search uri
 			const uri = matrix.uri([], '/search')
+
+			// Transform query parameters
+			let params = {}; for (let key in query)
+			{
+				const val = query[key]
+
+				// If model, use primary key
+				params[key] = isModel(val) ? val._pk.join(',') : val
+			}
 			
 			// Return set with results
-			const [ results ] = await request('GET', uri, query)()
+			const [ results ] = await request('GET', uri, params)()
 			return new this(results)
 		}
 	}
