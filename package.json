@@ -1,6 +1,6 @@
 {
   "name": "@sneppy/vue-pony",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "Object-oriented REST API interface, inspired by PonyORM",
   "main": "dist/vue-pony.cjs.js",
   "module": "dist/vue-pony.esm.js",

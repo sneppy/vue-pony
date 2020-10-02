@@ -370,6 +370,61 @@ POST /post
 }
 ```
 
+When applicable, it is possible to directly create a new entity from a set:
+
+```javascript
+let user = User.get(1)
+user.posts._create({
+	title: 'Hello',
+	content: 'Hello, World!'
+})
+```
+
+If the set is at the end of a relationhip (as opposed to a set obtained with `Set.all()` or `Set.search()`) the `POST` request is sent at `'/' + <other> + '/' resource`. For example, the above code generates the following request:
+
+```http
+POST /user/1/post
+
+{
+	"title": "Hello",
+	"content": "Hello, World!"
+}
+```
+
+This feature may seem redundant in the example above, but let's assume that `Post` also has a set of comments:
+
+```javascript
+class Comment extends api.Model {}
+
+class Post extends api.Model
+{
+	static comments = api.Set(Comment)
+}
+```
+
+At which point we could use `_create()` like this:
+
+```javascript
+let post = Post.get(5)
+post.comments.create({
+	message: 'vue-pony rocks!'
+})
+```
+
+Sent request:
+
+```http
+POST /post/5/comment
+
+{
+	"message": "vue-pony rocks!"
+}
+```
+
+Another advantage of using `_create()` is that set indices are immediately updated and/or invalidated.
+
+> This final feature is still a WIP.
+
 ### Deleting entities
 
 Entities can be delete with `_delete()`. A `DELETE` request is dispatched at the entity URI:
@@ -387,7 +442,7 @@ DELETE /user/1
 
 The request returns an empty response (simply return `204 NO CONTENT`).
 
-Unlike many other methods, `_delete` returns a promise that resolves once the request is fullfilled (or throw an error if necessary):
+Unlike other methods, `_delete` returns a promise that resolves once the request is fullfilled (or throw an error if necessary):
 
 ```javascript
 try

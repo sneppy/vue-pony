@@ -24,7 +24,7 @@ export const isSet = (obj) => obj instanceof SetType
 /**
  * 
  */
-export default function Set(matrix) {
+export default function Set(Type) {
 
 	// Get context properties
 	const { request, store } = this
@@ -37,7 +37,7 @@ export default function Set(matrix) {
 		/**
 		 * 
 		 */
-		constructor(indices, record = null)
+		constructor(indices, record = null, owner = null)
 		{
 			return new Proxy(super(indices), {
 				/**
@@ -57,7 +57,44 @@ export default function Set(matrix) {
 							
 						for (let idx = 0, len = target._indices.length || 0; idx < len; ++idx)
 							// Yield `idx`-th model
-							yield matrix.get(...arrify(target._indices[idx]))
+							yield Type.get(...arrify(target._indices[idx]))
+					}
+
+					/**
+					 * 
+					 */
+					const create = (params) => {
+
+						if (!owner)
+						{
+							return Type.create(params)
+						}
+						else
+						{
+							// Get request URI
+							const uri = owner._uri('/' + Type.index())
+							
+							// Create new record and entity
+							let record = new Record({})
+							let entity = new Type(record._data, record)
+
+							// Update record asyncronously
+							record.asyncUpdate(async () => {
+
+								// Send create request
+								record.fromRequest(await request('POST', uri)(params))
+
+								// Evaluate actual entity uri
+								const pkuri = Type.uri(entity._pk)
+
+								// Store record
+								store.set(pkuri, record)
+
+								// TODO: Finally, local update indices and invalidate set record
+							})
+
+							return entity
+						}
 					}
 
 					// TODO: In order to work inside `_withFetchMode` we should override iterator as well
@@ -66,6 +103,9 @@ export default function Set(matrix) {
 					{
 						// Returns wait method
 						case '_wait': if (record instanceof Record) return wait // Otherwise, don't break
+
+						// Returns create entity method
+						case '_create': return create
 
 						// Returns iterator
 						case Symbol.iterator: return iter
@@ -80,7 +120,7 @@ export default function Set(matrix) {
 									// Try parsing index and returning i-th model
 									const idx = parseIdx(prop)
 
-									return matrix.get(...arrify(target._indices[idx]))
+									return Type.get(...arrify(target._indices[idx]))
 								}
 								catch (err)
 								{
@@ -150,7 +190,7 @@ export default function Set(matrix) {
 		static all()
 		{
 			// Compute set key and uri
-			const uri = matrix.uri()
+			const uri = Type.uri()
 
 			// Get from cache or fetch from server
 			let record = store.get(uri) || store.set(uri, new Record([]))
@@ -173,11 +213,11 @@ export default function Set(matrix) {
 		static in(owner)
 		{
 			// Compute set key and uri
-			const uri = owner._uri('/' + matrix.index())
+			const uri = owner._uri('/' + Type.index())
 			
 			// Get from cache or fetch from server
 			let record = store.get(uri) || store.set(uri, new Record([]))
-			let set = new this(record._data, record)
+			let set = new this(record._data, record, owner)
 
 			record.maybeUpdate(async () => {
 
@@ -196,7 +236,7 @@ export default function Set(matrix) {
 		static async search(query)
 		{
 			// Search uri
-			const uri = matrix.uri([], '/search')
+			const uri = Type.uri([], '/search')
 
 			// Transform query parameters
 			let params = {}; for (let key in query)

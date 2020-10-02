@@ -129,6 +129,11 @@ class AdventureMember extends api.Model
 		return `/adventure/${adventureid}/member/${userid}`
 	}
 
+	get _pk()
+	{
+		return [this._data.user, this._data.adventure]
+	}
+
 	/// User
 	static user = User
 
@@ -153,14 +158,5 @@ auth({
 	password: 'qwerty'
 }).then(() => {
 	
-	api.wait(() => Post.create({
-		adventure: 10,
-		title: 'Anatomia del beholder',
-		cover: 'https://vignette.wikia.nocookie.net/forgottenrealms/images/a/ad/Volobehold.png/revision/latest?cb=20190302091634',
-		tags: ['first post', 'beholder']
-	})._self).then((post) => {
-
-		console.log(post.id, post.title)
-		post._delete().then(() => console.log('DELETED'))
-	})
+	//
 })

@@ -45,6 +45,19 @@ export default class Record
 	}
 
 	/**
+	 * 
+	 */
+	fromRequest([ data, status ])
+	{
+		// Update data and status
+		Object.assign(this._data, data)
+		this._status = status
+		
+		// Return self
+		return this
+	}
+
+	/**
 	 *
 	 */
 	syncUpdate(update)
