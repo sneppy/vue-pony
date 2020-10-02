@@ -129,8 +129,25 @@ export class Post extends api.Model
 
 A relationship can be accessed just like a normal property (e.g. `for (let post of user.posts)`, `post.author.username`, etc.).
 
-Data reactivity
-------------------------------
+Reading data
+------------
+
+Properties and relationship are accessed as standard properties in javascript:
+
+```javascript
+user.username
+user['email']
+post.author.username
+```
+
+This may cause some problem if the entity data is not yet available:
+
+- an entity property may return `undefined`;
+- a relationship that depends on the data may not be able to fetch the correct entity (see above).
+
+Fortunately there are few ways to deal with this issues.
+
+### Data reactivity
 
 All requests are asynchronous, which means that `User.get(1).title` will return `undefined`.
 
@@ -171,6 +188,15 @@ export default {
 </script>
 ```
 
+If you need to diplay some loading animation or you simply hate to have the console full of warnings you can combine any of the following `Model` properties with `v-if` to delay the rendering of certain parts of your component or to display some error message:
+
+| prop | description |
+| ---- | ----------- |
+| `_ready` | Returns true whenever the record has a non-zero status (may be an error as well) |
+| `_ok` or `_found` | Returns true whenever the record has a `200 OK` or `201 CREATED` status |
+| `_error` | Returns true whenever the record has an error status (i.e. `4XX` or `5XX`) |
+| `_status` | Returns the record status |
+
 Furthermore, _vue-pony_ stores fetched data inside a reactive store. This has two consequences:
 
 - future `.get()` requests will immediately fill model with previously fetched data, while asynchronously update it with newer content;
@@ -192,12 +218,11 @@ setup() {
 
 The picture in the header will change accordingly!
 
-Waiting for data
-----------------
+### Waiting for data
 
 Instead of leveraging reactivity, we can wait for data to be available.
 
-`Model._wait()` returns a `Promise` that resolves with the entity itself or the provided expression when data is ready:
+`_wait()` returns a `Promise` that resolves with the entity itself or the provided expression when data is ready:
 
 ```javascript
 User.get(1)._wait().then((user) => console.log(user.username))
@@ -210,13 +235,13 @@ If we need to fetch a chain of entities (e.g. `post.author.username`) we can use
 api.wait(() => Post.get(1).author.username).then(console.log)
 ```
 
-Note that waiting for `() => post.author` will only wait for `post`. Likewise, waiting for `post` will not wait at all. In this case you must use `Model._self` to force data access:
+Note that waiting for `() => post.author` will only wait for `post`. Likewise, waiting for `() => post` will not wait at all. In this case you must use `_self` to force property access on the entity:
 
 ```javascript
 api.wait(() => Post.get(1).author._self).then((author) => console.log(author.username, author.email))
 ```
 
-Remember to keep the expression as simply as possible. `api.wait()` works by forcing `api.Model` to return a promise when a property is accessed, which means that the return value of `post.author.username` is actually a `Promise` rather than a String.
+Remember to keep the expression as simply as possible. `api.wait()` works by forcing the entity to return a promise when a property is accessed, which means that the return value of `post.author.username` is actually a `Promise` rather than a String.
 
 Of course, you can use `async/await` to overcome this limitation:
 
@@ -228,15 +253,11 @@ api.wait(async () => {
 }).then(console.log)
 ```
 
-Writing data
-------------
+A typical use case for `_wait` and `api.wait` is loading data before rendering a route.
 
-@todo
+### Sets
 
-Sets
-----
-
-`api.Set` represent a collection of entities. A set has one or more indices that identify one or more entities of the same type:
+A `Set` represent a collection of entities. A set has one or more indices that identify one or more entities of the same type:
 
 ```javascript
 api.Set(Post).all() // Fetch all posts
@@ -251,7 +272,7 @@ for (let post of api.Set(Post).all())
 }
 ```
 
-`api.Set` supports random access as well:
+Sets supports random access as well:
 
 ```javascript
 api.wait(() => posts[0]._self).then(console.log)
@@ -264,9 +285,9 @@ posts.forEach((post) => api.wait(() => post.author.username).then(console.log))
 console.log(posts.length)
 ```
 
-Bear in mind that the return value of `map`, `filter`, and similar methods is of type `Array` rather than `api.Set`.
+Bear in mind that the return value of `map`, `filter`, and similar methods is of type `Array` rather than `Set`.
 
-As with `Model`, we can wait for a set with `Set._wait()`. Sets can also have partial support for `api.wait()`, but only when accessed as a property of an entity:
+As with `Model`, we can wait for a set with `_wait()`. Sets can also have partial support for `api.wait()`, but only when accessed as a property of an entity:
 
 ```javascript
 api.wait(() => User.get(1).posts.length).then(console.log)
@@ -290,6 +311,63 @@ import { watchEffect } from 'vue'
 api.Set(Post).search({
 	title: 'Snoopy'
 }).then((posts) => watchEffect(() => console.log(posts.map((post) => post.author.username))))
+```
+
+Writing data
+------------
+
+Now that we have covered how to read data, let's see how we can create, update and delete entities.
+
+### Creating entities
+
+To create a new entity, use `Model.create()`:
+
+```javascript
+let user = User.create({
+	username: 'charlie',
+	email: 'charlie@sneppy.com',
+	name: 'Charlie Brown'
+})
+```
+
+Upon creation, a `POST` request is sent to `'/' <resource>` with the data provided in the first parameter:
+
+```http
+POST /user
+
+{
+	"username": "charlie",
+	"email": "charlie@sneppy.com",
+	"name": "Charlie Brown"
+}
+```
+
+The endpoint must be configured to return the data of the created entity, exactly as if we fetched the entity using `Model.get()`.
+
+As with `Model.get()`, `Model.create()` is a synchronous method. If you need to wait for the request you can use the usual `_wait()` and `api.wait()` or `_ready`, `_ok`, `_error` to check the request status.
+
+Any `Model` instance passed in the creation parameters (even deeply nested) is automatically replaced by its primary key:
+
+```javascript
+let user = User.get(1)
+// Wait...
+let post = Post.create({
+	title: 'Hello',
+	content: 'Hello, World!',
+	coauthor: user // <--
+})
+```
+
+Sent request:
+
+```http
+POST /post
+
+{
+	"title": "Hello",
+	"content": "Hello, World!",
+	"coauthor": 1
+}
 ```
 
 API authorization

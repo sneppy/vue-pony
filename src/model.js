@@ -1,5 +1,5 @@
-import { isEmpty, isFunction, identity } from "lodash"
-import { arrify } from './utils'
+import { isEmpty, isFunction, isArray, isObject, identity } from "lodash"
+import { arrify, dearrify } from './utils'
 import { isSet } from "./set"
 import Record from './record'
 
@@ -21,6 +21,39 @@ export class ModelType
  *
  */
 export const isModel = (obj) => obj instanceof ModelType
+
+/**
+ *
+ */
+const transformParams = (p) => {
+
+	if (isModel(p))
+	{
+		// Return primary key
+		return dearrify(p._pk)
+	}
+	else if (isSet(p))
+	{
+		// Return array of indices
+		return [ ...p._indices ]
+	}
+	else if (isArray(p))
+	{
+		return p.map(transformParams)
+	}
+	else if (isObject(p))
+	{
+		// Create copy
+		let obj = { ...p }
+
+		// Apply on object properties
+		for (let key in obj) obj[key] = transformParams(obj[key])
+
+		// Return new object
+		return obj
+	}
+	else return p
+}
 
 /**
  * 
@@ -119,10 +152,16 @@ export default function Model() {
 						// Returns wait method
 						case '_wait': if (record instanceof Record) return wait; break // Returns undefined
 
-						// Returns true if record status is 200
-						case '_ready': return (record instanceof Record) && record._status === 200
+						// Returns the record status
+						case '_status': return (record instanceof Record) && record._status
 
-						// Returns true if record status is 4XX or 5XX
+						// Returns true if request is done
+						case '_ready': return (record instanceof Record) && record._status !== 0
+
+						// Returns true if request was 200 OK or 201 CREATED
+						case '_ok': case '_found': return (record instanceof Record) && (record._status === 200 || record._status === 201)
+
+						// Returns true if an error occured, i.e. status is 4XX or 5XX
 						case '_error': return (record instanceof Record) && record._status > 299
 
 						// Resets record status, invalidates data but doesn't actually delete it
@@ -299,11 +338,8 @@ export default function Model() {
 		{
 			if (alias.length === 0) return Set(this).all()
 
-			// Transform alias
-			alias = alias.reduce((alias, key) => alias.concat(isModel(key) ? key._pk : key), [])
-
 			// Get object key and URI
-			const uri = this.uri(alias)
+			const uri = this.uri(transformParams(alias))
 
 			// Get from store
 			let record = store.get(uri) || store.set(uri, new Record)
@@ -362,6 +398,36 @@ export default function Model() {
 		static search(query)
 		{
 			return Set(this).search(query)
+		}
+
+		/**
+		 *
+		 */
+		static create(params)
+		{
+			// Get create URI
+			const uri = this.uri([])
+
+			// Create record and model
+			let record = new Record({})
+			let entity = new this(record._data, record)
+
+			record.asyncUpdate(async () => {
+
+				// Create and dispatch create request, update record
+				let [ data, status ] = await request('POST', uri)(transformParams(params))
+				Object.assign(record._data, data)
+				record._status = status
+
+				// Evaluate primary key
+				const pkuri = this.uri(entity._pk)
+
+				// Store record
+				store.set(pkuri, record)
+			})
+
+			// TODO: I was here
+			return entity
 		}
 
 		/**
