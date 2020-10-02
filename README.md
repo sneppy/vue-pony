@@ -370,6 +370,37 @@ POST /post
 }
 ```
 
+### Deleting entities
+
+Entities can be delete with `_delete()`. A `DELETE` request is dispatched at the entity URI:
+
+```javascript
+let user = User.get()
+user._delete()
+```
+
+Sent request:
+
+```http
+DELETE /user/1
+```
+
+The request returns an empty response (simply return `204 NO CONTENT`).
+
+Unlike many other methods, `_delete` returns a promise that resolves once the request is fullfilled (or throw an error if necessary):
+
+```javascript
+try
+{
+	// Try to delete user
+	await user._delete()
+}
+catch (err)
+{
+	// Handle error
+}
+```
+
 API authorization
 -----------------
 

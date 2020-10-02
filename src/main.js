@@ -149,13 +149,18 @@ class Post extends api.Model
 }
 
 auth({
-	login: 'lpraat',
+	login: 'sneppy',
 	password: 'qwerty'
 }).then(() => {
 	
-	api.wait(() => Adventure.get(6)._self, () => User.get(1)._self).then(([ adventure, user ]) => {
-		
-		let member = AdventureMember.get(user, adventure)
-		api.wait(() => member.roles).then(console.log)
+	api.wait(() => Post.create({
+		adventure: 10,
+		title: 'Anatomia del beholder',
+		cover: 'https://vignette.wikia.nocookie.net/forgottenrealms/images/a/ad/Volobehold.png/revision/latest?cb=20190302091634',
+		tags: ['first post', 'beholder']
+	})._self).then((post) => {
+
+		console.log(post.id, post.title)
+		post._delete().then(() => console.log('DELETED'))
 	})
 })

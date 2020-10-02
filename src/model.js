@@ -310,6 +310,20 @@ export default function Model() {
 		/**
 		 * 
 		 */
+		async _delete()
+		{
+			// Get delete URI
+			const uri = this._uri()
+
+			// Create and dispatch request
+			let [ _, status ] = await request('DELETE', uri)()
+
+			// TODO: Reset record
+		}
+
+		/**
+		 * 
+		 */
 		static index()
 		{
 			return this.name.toLowerCase()
