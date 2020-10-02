@@ -25,7 +25,7 @@ export const isModel = (obj) => obj instanceof ModelType
 /**
  *
  */
-const transformParams = (p) => {
+export const transformParams = (p) => {
 
 	if (isModel(p))
 	{

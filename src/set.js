@@ -1,6 +1,6 @@
 import { arrify, dearrify, parseIdx } from './utils'
 import Record from "./record"
-import { isModel } from './model'
+import { isModel, transformParams } from './model'
 
 /**
  * 
@@ -56,8 +56,22 @@ export default function Set(Type) {
 					const iter = function*() {
 							
 						for (let idx = 0, len = target._indices.length || 0; idx < len; ++idx)
-							// Yield `idx`-th model
-							yield Type.get(...arrify(target._indices[idx]))
+						{
+							// Get alias
+							const alias = target._indices[idx]
+
+							// Get entity by alias
+							let entity = Type.get(...arrify(alias))
+
+							// TODO: Register delete callback
+							/* entity._on('delete', () => {
+
+								// TODO: Remove corresponding index
+							}) */
+
+							// Yield entity
+							yield entity
+						}
 					}
 
 					/**
@@ -82,7 +96,7 @@ export default function Set(Type) {
 							record.asyncUpdate(async () => {
 
 								// Send create request
-								record.fromRequest(await request('POST', uri)(params))
+								record.fromRequest(await request('POST', uri)(transformParams(params)))
 
 								// Evaluate actual entity uri
 								const pkuri = Type.uri(entity._pk)
@@ -106,6 +120,8 @@ export default function Set(Type) {
 
 						// Returns create entity method
 						case '_create': return create
+
+
 
 						// Returns iterator
 						case Symbol.iterator: return iter
