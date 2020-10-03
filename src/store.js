@@ -42,24 +42,24 @@ export default function Store(options = {}) {
 	/**
 	 * 
 	 */
-	const reset = (key) => {
+	const reset = (...keys) => {
 
-		if (arguments.length === 0)
+		if (keys.length === 0)
 		{
+			console.log('RESET', 'ALL')
+
 			// Reset all records
 			for (let key in store) delete store[key]
 		}
-		else
-		{
+		else keys.forEach((key) => {
+
+			console.log('RESET', key)
+
 			let h = hash(key)
 
 			// Pop value from store
-			let val = store[h]
 			delete store[h]
-
-			// Return popped value
-			return val
-		}
+		})
 	}
 
 	/**
