@@ -63,11 +63,18 @@ export default function Set(Type) {
 							// Get entity by alias
 							let entity = Type.get(...arrify(alias))
 
-							// TODO: Register delete callback
-							/* entity._on('delete', () => {
+							// Register delete callback
+							entity._onDelete(() => {
+								
+								// TODO: Don't use keys
+								const key = Type.key(arrify(alias))
+								const idx = target._indices.findIndex((alias) => Type.key(arrify(alias)) === key)
 
-								// TODO: Remove corresponding index
-							}) */
+								// Remove locally
+								if (idx !== -1) target._indices.splice(idx, 1)
+
+								// TODO: Invalidate record
+							})
 
 							// Yield entity
 							yield entity

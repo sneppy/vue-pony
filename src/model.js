@@ -77,9 +77,12 @@ export default function Model() {
 	return class Model extends ModelType
 	{
 		/**
-		 * 
+		 * Construct a new entity from this Model
+		 *
+		 * @param {Object} data entity raw data
+		 * @param {Record} record record associated to this entity, if any
 		 */
-		constructor(data, record = null)
+		constructor(data, record)
 		{
 			// Returns a custom proxied object
 			return new Proxy(super(data), {
@@ -144,13 +147,39 @@ export default function Model() {
 					/**
 					 *
 					 */
+					const del = () => {
+
+						// Get deletion URI
+						const uri = receiver._uri()
+
+						// Delete record
+						return record.asyncDelete(async () => {
+
+							// Create and dispatch delete request
+							let [ _, status ] = await request('DELETE', uri)()
+
+							// After deletion, reset store
+							store.reset(uri)
+						})
+					}
+
+					/**
+					 *
+					 */
 					const wait = async (then = identity) => (await record.waitReady(), then(receiver))
 
 					// Switch on prop name
 					switch (prop)
 					{
+						// Returns delete method
+						case '_delete': if (record instanceof Record) return del; break // Returns undefined
+
 						// Returns wait method
 						case '_wait': if (record instanceof Record) return wait; break // Returns undefined
+
+						// Returns method to register delete callback
+						// TODO: What about having `_on` with string events?
+						case '_onDelete': if (record instanceof Record) return record.onDelete.bind(record); break // Returns undefined
 
 						// Returns the record status
 						case '_status': return (record instanceof Record) && record._status
@@ -319,6 +348,8 @@ export default function Model() {
 			let [ _, status ] = await request('DELETE', uri)()
 
 			// TODO: Reset record
+
+			// TODO: Remove from set
 		}
 
 		/**
@@ -370,9 +401,7 @@ export default function Model() {
 				record.maybeUpdate(async () => {
 
 					// Fetch data and update record
-					let [ data, status ] = await request('GET', uri)()
-					Object.assign(record._data, data)
-					record._status = status
+					record.fromRequest(await request('GET', uri)())
 
 					// Get URI from primary key
 					const pkuri = this.uri(model._pk)
@@ -391,19 +420,21 @@ export default function Model() {
 		static fetch(uri)
 		{
 			let record = store.get(uri) || store.set(uri, new Record)
-			let model = new this(record._data, record)
+			let entity = new this(record._data, record)
 
 			record.maybeUpdate(async () => {
 
 				// Fetch data and update record
-				let [ data, status ] = await request('GET', uri)()
-				Object.assign(record._data, data)
-				record._status = status
+				record.fromRequest(await request('GET', uri)())
 
-				// ? No alias with fetch?
+				// Get actual entity URI
+				const pkuri = this.uri(entity._pk)
+
+				// Store alias if different from fetch URI
+				if (uri !== pkuri) store.alias(uri, pkuri, record)
 			})
 
-			return model
+			return entity
 		}
 
 		/**
@@ -429,9 +460,7 @@ export default function Model() {
 			record.asyncUpdate(async () => {
 
 				// Create and dispatch create request, update record
-				let [ data, status ] = await request('POST', uri)(transformParams(params))
-				Object.assign(record._data, data)
-				record._status = status
+				record.fromRequest(await request('POST', uri)(transformParams(params)))
 
 				// Evaluate primary key
 				const pkuri = this.uri(entity._pk)

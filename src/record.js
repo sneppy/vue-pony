@@ -41,7 +41,7 @@ export default class Record
 	 */
 	get requiresUpdate()
 	{
-		return this._status === 0 || this._status == 401 || this._status > 499
+		return this._status === 0 || this._status > 499
 	}
 
 	/**
@@ -73,7 +73,7 @@ export default class Record
 		catch (err)
 		{
 			// Handle error
-			this._handleError(err)
+			this._handleError(err, 'update')
 		}
 
 		return this._data
@@ -98,7 +98,7 @@ export default class Record
 		catch (err)
 		{
 			// Handle error
-			this._handleError(err)
+			this._handleError(err, 'update')
 		}
 
 		// Release lock
@@ -130,7 +130,7 @@ export default class Record
 			catch (err)
 			{
 				// Handle error
-				this._handleError(err)
+				this._handleError(err, 'update')
 			}
 		}
 
@@ -139,6 +139,32 @@ export default class Record
 
 		// Return record data
 		return this.data
+	}
+	
+	/**
+	 *
+	 */
+	async asyncDelete(del)
+	{
+		// Acquire lock
+		const release = await this._lock.acquire()
+
+		try
+		{
+			// Perform deletion
+			await del()
+
+			// Notify observers
+			this._afterDelete()
+		}
+		catch (err)
+		{
+			// Delete error
+			this._handleError(err, 'delete')
+		}
+
+		// Release lock
+		release()
 	}
 
 	/**
@@ -156,24 +182,55 @@ export default class Record
 			let { once = false } = options
 
 			// Execute callback
-			if (!!callback && isFunction(callback)) callback(this.data)
-
-			// If receives single update, return false
-			return !once;
+			if (!!callback && isFunction(callback))
+			{
+				return callback(this.data) === true || !once
+			}
+			else return !once;
 		}
 
 		// Notify all observers
-		const keys = Object.keys(this._observers); for (let key of keys)
+		const keys = Object.keys(this._observers.update || {}); for (let key of keys)
 		{
 			// Notify and possibly unregister observer
-			notify(this._observers[key]) || (delete this._observers[key])
+			notify(this._observers.update[key]) || (delete this._observers.update[key])
 		}
 	}
 
 	/**
 	 *
 	 */
-	_handleError(err)
+	_afterDelete()
+	{
+		/**
+		 *
+		 */
+		const notify = ({ handler, options }) => {
+
+			// Get observer options and callbacks
+			let [ callback ] = arrify(handler)
+			let { once = false } = options
+
+			// Execute callback
+			if (!!callback && isFunction(callback))
+			{
+				return callback(this.data) === true || !once
+			}
+			else return !once;
+		}
+
+		// Notify all observers
+		const keys = Object.keys(this._observers.delete || {}); for (let key of keys)
+		{
+			// Notify and possibly unregister observer
+			notify(this._observers.delete[key]) || (delete this._observers.delete[key])
+		}
+	}
+
+	/**
+	 *
+	 */
+	_handleError(err, event = 'update')
 	{
 		/**
 		 *
@@ -185,10 +242,11 @@ export default class Record
 			let { once = false } = options
 
 			// Execute error callback
-			if (!!callback && isFunction(callback)) callback(err)
-
-			// If receives single update, return false
-			return !once;
+			if (callback && isFunction(callback))
+			{
+				return callback(err) === true || !once
+			}
+			else return !once;
 		}
 
 		// Get status
@@ -196,10 +254,10 @@ export default class Record
 		this._status = status
 
 		// Notify all observers
-		const keys = Object.keys(this._observers); for (let key of keys)
+		const keys = Object.keys(this._observers[event] || {}); for (let key of keys)
 		{
 			// Notify and possibly unregister observer
-			notify(this._observers[key]) || (delete this._observers[key])
+			notify(this._observers[event][key]) || (delete this._observers[event][key])
 		}
 	}
 
@@ -227,16 +285,33 @@ export default class Record
 	/**
 	 *
 	 */
-	onUpdate(handler, options = {})
+	_on(event, handler, options)
 	{
 		// Generate unique id to identify observer
 		const id = uuid()
 
 		// Add to observers list
-		this._observers[id] = { handler, options }
+		this._observers[event] = this._observers[event] || {}
+		this._observers[event][id] = { handler, options }
 
 		// Return unsubscribe callback
-		return async () => delete this._observers[id]
+		return async () => delete this._observers[event][id]
+	}
+
+	/**
+	 *
+	 */
+	onUpdate(handler, options = {})
+	{
+		return this._on('update', handler, options)
+	}
+
+	/**
+	 *
+	 */
+	onDelete(handler, options = {})
+	{
+		return this._on('delete', handler, options)
 	}
 
 	/**
