@@ -147,6 +147,22 @@ export default function Model() {
 					/**
 					 *
 					 */
+					const update = () => {
+
+						// TODO: Update data if necessary
+					}
+
+					/**
+					 *
+					 */
+					const refresh = () => {
+
+						// TODO: Fetch data again
+					}
+
+					/**
+					 *
+					 */
 					const del = () => {
 
 						// Get deletion URI
@@ -166,6 +182,34 @@ export default function Model() {
 					/**
 					 *
 					 */
+					const save = () => {
+
+						// Get update URI
+						const uri = receiver._uri()
+
+						// Update record
+						return record.asyncUpdate(async () => {
+
+							// Update from request, using record data
+							record.fromRequest(await request('PUT', uri)(record._data))
+
+							// * No need to invalidate anything
+						}), receiver
+
+						// TODO: For the moment being, this method returns a promise
+					}
+
+					/**
+					 *
+					 */
+					const patch = () => {
+
+						// TODO:
+					}
+
+					/**
+					 *
+					 */
 					const wait = async (then = identity) => (await record.waitReady(), then(receiver))
 
 					// Switch on prop name
@@ -173,6 +217,13 @@ export default function Model() {
 					{
 						// Returns delete method
 						case '_delete': if (record instanceof Record) return del; break // Returns undefined
+
+						// Returns save method
+						case '_save': if (record instanceof Record) return save; break // Returns undefined
+
+						// Resets record status, invalidates data but doesn't actually delete it
+						// TODO: Don't like this
+						case '_invalidate': if (record instanceof Record) return record.invalidate.bind(record); break // Returns undefined
 
 						// Returns wait method
 						case '_wait': if (record instanceof Record) return wait; break // Returns undefined
@@ -192,9 +243,6 @@ export default function Model() {
 
 						// Returns true if an error occured, i.e. status is 4XX or 5XX
 						case '_error': return (record instanceof Record) && record._status > 299
-
-						// Resets record status, invalidates data but doesn't actually delete it
-						case '_invalidate': if (record instanceof Record) return record.invalidate.bind(record); break // Returns undefined
 
 						default:
 							// If in fetch mode, wait self and wrap property

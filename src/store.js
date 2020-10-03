@@ -46,14 +46,10 @@ export default function Store(options = {}) {
 
 		if (keys.length === 0)
 		{
-			console.log('RESET', 'ALL')
-
 			// Reset all records
 			for (let key in store) delete store[key]
 		}
 		else keys.forEach((key) => {
-
-			console.log('RESET', key)
 
 			let h = hash(key)
 

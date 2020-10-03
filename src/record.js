@@ -193,6 +193,7 @@ export default class Record
 		const keys = Object.keys(this._observers.update || {}); for (let key of keys)
 		{
 			// Notify and possibly unregister observer
+			// TODO: Should this be `&&`?
 			notify(this._observers.update[key]) || (delete this._observers.update[key])
 		}
 	}

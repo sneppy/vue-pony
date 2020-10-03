@@ -255,6 +255,12 @@ api.wait(async () => {
 
 A typical use case for `_wait` and `api.wait` is loading data before rendering a route.
 
+### Refreshing data
+
+Starting with `1.0.21` you can refresh an entity anytime with `_refresh()` or `_update()`.
+
+Both methods send a `GET` request at the entity URI. However `_refresh()` always fetches new data, whereas `_update()` fetches data only if necessary (e.g. if record was invalidated).
+
 ### Sets
 
 A `Set` represent a collection of entities. A set has one or more indices that identify one or more entities of the same type:
@@ -454,6 +460,18 @@ catch (err)
 {
 	// Handle error
 }
+```
+
+If the deleted entity was part of a set, that set is automatically updated and/or invalidated.
+
+### Updating entities
+
+The easy way to update an entity is to use `_save()` to dispatch a `PUT` request at the entity URI:
+
+```javascript
+let user = User.get(1)
+user.username = 'sneppy'
+user._save()
 ```
 
 API authorization
