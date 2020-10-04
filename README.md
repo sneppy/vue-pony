@@ -6,6 +6,11 @@
 
 > Note that I develop _vue-pony_ for personal use. I won't be actively looking into issues and pull requests.
 
+Collaborators
+-------------
+
+- Andrea Mecchia @ [sneppy](https://github.com/sneppy)
+
 Install
 -------
 
@@ -250,4 +255,4 @@ let [ , , xhr ] = res
 
 ### Advanced usage
 
-@todo
+Take a look [here](https://sneppy.github.io/vue-pony/)
