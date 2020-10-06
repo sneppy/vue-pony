@@ -1,3 +1,4 @@
+import { identity, reject } from 'lodash';
 import { arrify, dump } from './util'
 import { isModel, isSet, ModelType } from "./types";
 import Record from './record'
@@ -121,6 +122,17 @@ export default function() {
 		_uri(path = '')
 		{
 			return this.__type__.uri(this._pk, path)
+		}
+
+		async _wait(event = 'update', what = identity)
+		{
+			if (this.__record__)
+			{
+				// Wait for event, then return whatever you wanted
+				return (await this.__record__.wait(event), what(this))
+			}
+			// Immediately resolve promise
+			else return what(this)
 		}
 
 		/**

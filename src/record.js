@@ -168,9 +168,8 @@ export default class Record
 	 * @param {string} event - event type
 	 * @param {function|Array<function>} handler - event handler, or array with callback and error handler
 	 * @return {function} unsubscribe function
-	 * @private
 	 */
-	_on(event, handler)
+	on(event, handler)
 	{
 		// Generate unique id for observer
 		const id = uuid()
@@ -185,5 +184,14 @@ export default class Record
 		const unsub = () => delete this._observer[event][id]
 
 		return unsub
+	}
+
+	/**
+	 * @see on
+	 */
+	wait(event)
+	{
+		// Return promise that resolves on event
+		return new Promise((resolve, reject) => this.on(event, [ resolve, reject ]))
 	}
 }
