@@ -44,11 +44,21 @@ export default class Record
 	}
 
 	/**
-	 * 
+	 * Returns true if record is expired or invalid from the beginning.
+	 * @returns {boolean} expire flag
 	 */
 	isExpired()
 	{
 		return this.status === 0 || this._expires < Date.now()
+	}
+
+	/**
+	 * Returns true if request is fullfilled or rejected.
+	 * @returns {boolean} true if status is 200 or 201
+	 */
+	isReady()
+	{
+		return this.status !== 0
 	}
 
 	/**
@@ -174,6 +184,38 @@ export default class Record
 		// Generate unique id for observer
 		const id = uuid()
 
+		switch (event)
+		{
+			case 'ready':
+				// Check if already fulfilled
+				if (this.isReady())
+				{
+					// Immediately execute callback
+					let [ callback ] = arrify(handler)
+					return (callback(this), () => {}) // Empty unsub
+				}
+				else
+				{
+					// Register as update event listener
+					event = 'update'
+					
+					// Callback must check `isReady`
+					let [ onReady, onError ] = arrify(handler)
+					handler = [
+						() => {
+							
+							if (this.isReady())
+							{
+								// Execute callback and unregister obs
+								return (onReady(this), false)
+							}
+							else ; // Do nothing
+						},
+						onError
+					]
+				}
+		}
+
 		// Register observer
 		this._observer[event] = this._observer[event] || {}
 		this._observer[event][id] = handler
@@ -182,7 +224,6 @@ export default class Record
 		 * Unsubscribe function.
 		 */
 		const unsub = () => delete this._observer[event][id]
-
 		return unsub
 	}
 
@@ -191,7 +232,7 @@ export default class Record
 	 */
 	wait(event)
 	{
-		// Return promise that resolves on event
-		return new Promise((resolve, reject) => this.on(event, [ resolve, reject ]))
+		// Return promise that resolves on event (and unsubscribe)
+		return new Promise((resolve, reject) => this.on(event, [ (self) => (resolve(self), false), reject ]))
 	}
 }

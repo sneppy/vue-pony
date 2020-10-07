@@ -1,11 +1,13 @@
 import { SetType, ModelType } from './types'
 import { arrify, parseIdx } from './util'
 import Record from './record'
+import Future from './future'
 
 export default function(Type) {
 
 	// Get context
 	const { request, store, Model } = this
+	const isFutureMode = () => this._futureMode
 
 	/**
 	 * Base class for set types.
@@ -29,6 +31,12 @@ export default function(Type) {
 				 */
 				get(target, prop, self)
 				{
+					if (isFutureMode())
+					{
+						// Return future
+						return Future((async () => (await record.wait('ready'), self[prop]))())
+					}
+
 					switch (prop)
 					{
 						// Returns request method
@@ -57,12 +65,43 @@ export default function(Type) {
 							}
 							else
 							{
-								// Return i-th entity
-								return Type.get(...arrify(indices[idx]))
+								// Get i-th entity
+								let entity = Type.get(...arrify(indices[idx]))
+
+								// Return entity
+								return entity
 							}
 					}
 				}
 			})
+		}
+
+		/**
+		 * Set length.
+		 * @type number
+		 */
+		get length()
+		{
+			return this.__indices__.length
+		}
+		
+		/**
+		 * Array representation. Can be used in place of spread with {@link Pony#wait}.
+		 * @type Array
+		 */
+		get array()
+		{
+			return Array.from(this)
+		}
+
+		/**
+		 * Map entities, return mapped array (not set!).
+		 * @param {function} mapping - map function
+		 * @returns {Array} mappped array of entities
+		 */
+		map(mapping)
+		{
+			return Array.from(this, mapping)
 		}
 
 		/**
@@ -81,6 +120,23 @@ export default function(Type) {
 		}
 
 		/**
+		 * Return a promise that resolves on record event.
+		 * @param {string} [event='update'] - record event
+		 * @param {function} [what] - transform callback
+		 * @returns {Promise} set or transform callback output
+		 */
+		async _wait(event = 'update', what = identity)
+		{
+			if (this.__record__)
+			{
+				// Wait for event, then return whatever you wanted
+				return (await this.__record__.wait(event), what(this))
+			}
+			// Immediately resolve promise
+			else return what(this)
+		}
+
+		/**
 		 * Fetches a set of entity from the given endpoint.
 		 * @param {string} uri - set URI
 		 * @returns {this} set of entities
@@ -92,11 +148,7 @@ export default function(Type) {
 			let set = new this(record.data, record)
 
 			// Update record if necessary
-			record.maybeUpdate(async () => {
-				
-				// Update record from request
-				record.fromRequest(request('GET', uri))
-			})
+			record.maybeUpdate(() => record.fromRequest(request('GET', uri)))
 
 			return set
 		}

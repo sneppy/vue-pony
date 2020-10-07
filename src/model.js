@@ -1,7 +1,8 @@
-import { identity, reject } from 'lodash';
+import { identity } from 'lodash';
 import { arrify, dump } from './util'
 import { isModel, isSet, ModelType } from "./types";
 import Record from './record'
+import Future from './future'
 
 /**
  * Returns a model class bound to a context.
@@ -11,6 +12,7 @@ export default function() {
 
 	// Get context
 	const { request, store } = this
+	const isFutureMode = () => this._futureMode
 	
 	/**
 	 * Base implementation class for all models.
@@ -37,6 +39,13 @@ export default function() {
 
 					// Get model type
 					let Type = target.constructor
+
+					// Future mode
+					if (isFutureMode())
+					{
+						// Return future, after record is ready
+						return Future((async () => (await record.wait('ready'), self[prop]))())
+					}
 					
 					switch (prop)
 					{
@@ -124,6 +133,12 @@ export default function() {
 			return this.__type__.uri(this._pk, path)
 		}
 
+		/**
+		 * Return a promise that resolves on record event.
+		 * @param {string} [event='update'] - record event
+		 * @param {function} [what] - transform callback
+		 * @returns {Promise} entity or transform callback output
+		 */
 		async _wait(event = 'update', what = identity)
 		{
 			if (this.__record__)

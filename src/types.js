@@ -11,6 +11,14 @@ export class ModelType
 		// Prevent construction
 		if (new.target === ModelType) throw TypeError('Cannot construct object of abstract type `ModelType`')
 	}
+
+	/**
+	 * Returns self.
+	 */
+	get _self()
+	{
+		return this
+	}
 }
 
 /**
@@ -32,6 +40,14 @@ export class SetType
 	{
 		// Prevent construction
 		if (new.target === SetType) throw TypeError('Cannot construct object of abstract type `SetType`')
+	}
+
+	/**
+	 * Returns self.
+	 */
+	get _self()
+	{
+		return this
 	}
 }
 
