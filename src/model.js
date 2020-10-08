@@ -140,26 +140,38 @@ export default function() {
 		 */
 		_update(force = false)
 		{
-			// Get fetch URI
-			const uri = this._uri()
-			
-			/**
-			 * Do update function
-			 */
-			const doUpdate = async () => this.__record__.fromRequest(request('GET', uri))
+			if (this.__record__)
+			{
+				// Get fetch URI
+				const uri = this._uri()
+				
+				/**
+				 * Do update function
+				 */
+				const doUpdate = () => this.__record__.fromRequest(request('GET', uri))
 
-			if (force)
-			{
-				// Force update, don't check expired
-				this.__record__.asyncUpdate(doUpdate)
-			}
-			else
-			{
-				// Update if necessary
-				this.__record__.maybeUpdate(doUpdate)
+				// If force update don't check expired
+				if (force) this.__record__.asyncUpdate(doUpdate)
+				else this.__record__.maybeUpdate(doUpdate)
 			}
 
 			return this
+		}
+
+		/**
+		 * Delete entities.
+		 * @returns {Promise} delete request promise
+		 */
+		async _delete()
+		{
+			if (this.__record__)
+			{
+				// Get delete URI
+				const uri = this._uri()
+
+				// Send delete request and delete record
+				this.__record__.asyncDelete(() => this.__record__.fromRequest(request('DELETE', uri)))
+			}
 		}
 
 		/**
@@ -196,7 +208,7 @@ export default function() {
 		 */
 		static uri(alias = [], path = '')
 		{
-			return `/${this.index}/${alias.join('/')}` + path
+			return '/' + [this.index, ...alias].join('/') + path
 		}
 
 		/**
@@ -241,12 +253,13 @@ export default function() {
 		/**
 		 * Create a new entity.
 		 * @param {Object} params - creation parameters
+		 * @param {string?} uri - URI if different from default 
 		 * @returns {this} created entity
 		 */
-		static create(params)
+		static create(params, uri)
 		{
 			// Get entity URI
-			const uri = this.uri()
+			uri = uri || this.uri()
 
 			// Create record
 			let record = new Record(params)

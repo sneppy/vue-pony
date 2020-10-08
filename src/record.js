@@ -123,7 +123,7 @@ export default class Record
 	/**
 	 * Like {@link asyncUpdate}, but only if record is unset or outdated.
 	 * @param {function} doUpdate - update callback
-	 * @returns {Record} self
+	 * @returns {Promise<this>} self
 	 */
 	async maybeUpdate(doUpdate)
 	{
@@ -153,6 +153,37 @@ export default class Record
 
 		return this
 	}
+
+	/**
+	 * Execute the delete function, delete record and notify observers.
+	 * @param {function} doDelete - delete function
+	 * @returns {Promise<this>} promise that resolves with record itself
+	 */
+	async asyncDelete(doDelete)
+	{
+		// Acquire lock on data
+		const release = await this._lock.acquire()
+
+		try
+		{
+			// Execute delete function
+			await doDelete()
+
+			// Notify observers
+			this._afterDelete()
+		}
+		catch (err)
+		{
+			// TODO: Handle error
+		}
+		finally
+		{
+			// Release lock
+			release()
+		}
+
+		return this
+	}
 	
 	/**
 	 * After record udpate notify observers
@@ -169,6 +200,28 @@ export default class Record
 			{
 				// Execute callback and possibly remove it
 				if (handler(this) === false) delete this._observer.update[key]
+			}
+		}
+	}
+
+	/**
+	 * After record delete, notify observers
+	 * @private
+	 */
+	_afterDelete()
+	{
+		const keys = Object.keys(this._observer.delete || {}); for (let key of keys)
+		{
+			// Get handler
+			const [ handler ] = arrify(this._observer.delete[key])
+
+			if (handler && isFunction(handler))
+			{
+				// Execute callback
+				handler(this)
+
+				// Delete observer, record doesn't exists anymore
+				delete this._observer.delete[key]
 			}
 		}
 	}
