@@ -3,6 +3,37 @@ import { arrify, parseIdx } from './util'
 import Record from './record'
 import Future from './future'
 
+/**
+ * Spawn a new entity which is part of a set.
+ * @param {typeof ModelType} Type - model type
+ * @param {}
+ * @return {ModelType} spawned entity
+ */
+function spawnEntity(Type, ...alias) {
+
+	// Get i-th entity
+	let entity = Type.get(...alias)
+
+	// Subscribe to delete event
+	entity._wait('delete').then(() => {
+
+		// Find entity index in set
+		const key = Type.key(alias)
+		const idx = this.__indices__.findIndex((other) => Type.key(other) === key)
+
+		// If found, remove from set
+		if (idx !== -1) this.__indices__.splice(idx, 1)
+	})
+
+	// Return entity
+	return entity
+}
+
+/**
+ * Returns a set factory bound to a context.
+ * @param {typeof ModelType} Type - model type
+ * @returns {function} set factory
+ */
 export default function(Type) {
 
 	// Get context
@@ -63,14 +94,7 @@ export default function(Type) {
 									// TODO: Return array of props
 								}
 							}
-							else
-							{
-								// Get i-th entity
-								let entity = Type.get(...arrify(indices[idx]))
-
-								// Return entity
-								return entity
-							}
+							else return spawnEntity.bind(self, Type)(...arrify(this.__indices__[idx]))
 					}
 				}
 			})
@@ -80,7 +104,7 @@ export default function(Type) {
 		 * Set length.
 		 * @type number
 		 */
-		get length()
+		get _length()
 		{
 			return this.__indices__.length
 		}
@@ -89,19 +113,9 @@ export default function(Type) {
 		 * Array representation. Can be used in place of spread with {@link Pony#wait}.
 		 * @type Array
 		 */
-		get array()
+		get _array()
 		{
 			return Array.from(this)
-		}
-
-		/**
-		 * Map entities, return mapped array (not set!).
-		 * @param {function} mapping - map function
-		 * @returns {Array} mappped array of entities
-		 */
-		map(mapping)
-		{
-			return Array.from(this, mapping)
 		}
 
 		/**
@@ -117,6 +131,16 @@ export default function(Type) {
 				// Yield entity
 				yield entity
 			}
+		}
+
+		/**
+		 * Map entities, return mapped array (not set!).
+		 * @param {function} mapping - map function
+		 * @returns {Array} mappped array of entities
+		 */
+		_map(mapping)
+		{
+			return Array.from(this, mapping)
 		}
 
 		/**
