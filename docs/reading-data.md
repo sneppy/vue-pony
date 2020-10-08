@@ -69,24 +69,24 @@ We can also access a specific model, like we would in a normal array:
 let post = User.get(1).posts[0] // First user post
 ```
 
-The similarity with normal arrays don't end here. As with arrays, `length` returns the number of items in the set:
+The similarity with normal arrays don't end here. As with arrays, `_length` returns the number of items in the set:
 
 ```javascript
-let numPosts = User.get(1).posts.length
+let numPosts = User.get(1).posts._length
 ```
 
-And we can use `map(mapping)`, like we would on a normal array:
+And we can use `_map(mapping)`, like we would on a normal array:
 
 ```javascript
-let titles = User.get(1).posts.map((p) => p.title)
+let titles = User.get(1).posts._map((p) => p.title)
 ```
 
-A set can be converted to an array either using the spread operator or with `array`:
+A set can be converted to an array, either using the spread operator or with `_array`:
 
 ```javascript
 let arr = [ ...User.get(1).posts ]
 // or
-let arr = User.get(1).posts.array
+let arr = User.get(1).posts._array
 ```
 
 Sometimes you may wish to access the entity raw data. To do so, use `__data__`:
@@ -100,6 +100,14 @@ More rarely you will find youself in need to access the list of keys in a set. I
 ```javascript
 console.log(user.posts.__indices__) // Raw list of post ids (e.g. [1, 5, 10, 11])
 ```
+
+You can refresh the local data anytime using `_update(force = false)`:
+
+```javascript
+post._update()
+```
+
+If `force` is set, the entity will be updated even if the data is still fresh, otherwise it will be updated only if the local data is considered outdated.
 
 ### Data centralization and aliases
 

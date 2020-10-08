@@ -127,14 +127,8 @@ export default function(Type) {
 		 */
 		*[Symbol.iterator]() {
 
-			for (let pk of this.__indices__)
-			{
-				// Fetch entity
-				let entity = Type.get(...arrify(pk))
-
-				// Yield entity
-				yield entity
-			}
+			// Yield entities
+			for (let pk of this.__indices__) yield spawnEntity.bind(this, Type)(...arrify(pk))
 		}
 
 		/**

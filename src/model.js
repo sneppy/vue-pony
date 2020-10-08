@@ -160,14 +160,15 @@ export default function() {
 
 		/**
 		 * Delete entities.
+		 * @param {string} uri - custom delete URI
 		 * @returns {Promise} delete request promise
 		 */
-		async _delete()
+		async _delete(uri)
 		{
 			if (this.__record__)
 			{
 				// Get delete URI
-				const uri = this._uri()
+				uri = uri || this._uri()
 
 				// Send delete request and delete record
 				this.__record__.asyncDelete(() => this.__record__.fromRequest(request('DELETE', uri)))

@@ -5,7 +5,7 @@ import { Mutex } from "async-mutex"
 import { arrify } from "./util"
 
 /**
- * Represents a snapshot of data fetched from the server.
+ * This class represents a snapshot of data fetched from the server.
  */
 export default class Record
 {
