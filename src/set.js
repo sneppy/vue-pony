@@ -49,8 +49,9 @@ export default function(Type) {
 		 * Create a new set from a set of indices.
 		 * @param {Array} indices - list of entity indices
 		 * @param {Record} [record] - store record 
+		 * @param {ModelType} [owner] - entity this set belongs to
 		 */
-		constructor(indices, record)
+		constructor(indices, record, owner)
 		{
 			return new Proxy(super(), {
 				/**
@@ -78,6 +79,9 @@ export default function(Type) {
 
 						// Returns set record, if any
 						case '__record__': return record
+
+						// Returns entity this set belongs to, if any
+						case '__owner__': return owner
 						
 						default:
 							// Try to parse number
@@ -144,6 +148,25 @@ export default function(Type) {
 		}
 
 		/**
+		 * Creates a new instance of the given model and inserts it in the set.
+		 * 
+		 */
+		_create(params, uri)
+		{
+			// Use model creation method
+			if (!uri && this.__owner__) uri = this.__owner__._uri('/' + Type.index)
+			let entity = Type.create(params, uri)
+
+			// TODO: Add fake entry to set
+			
+			// We cannot add the entity pk right away
+			entity._wait('ready').then((readyEntity) => this.__indices__.push(readyEntity._pk))
+
+			// Return created entity meanwhile
+			return entity
+		}
+
+		/**
 		 * Return a promise that resolves on record event.
 		 * @param {string} [event='update'] - record event
 		 * @param {function} [what] - transform callback
@@ -163,13 +186,14 @@ export default function(Type) {
 		/**
 		 * Fetches a set of entity from the given endpoint.
 		 * @param {string} uri - set URI
+		 * @param {ModelType} owner - entity this set belongs to, if any
 		 * @returns {this} set of entities
 		 */
-		static fetch(uri)
+		static fetch(uri, owner)
 		{
 			// Get record or create new one
 			let record = store.get(uri) || store.set(uri, new Record([]))
-			let set = new this(record.data, record)
+			let set = new this(record.data, record, owner)
 
 			// Update record if necessary
 			record.maybeUpdate(() => record.fromRequest(request('GET', uri)))
@@ -185,7 +209,7 @@ export default function(Type) {
 		static in(entity)
 		{
 			// Get set URI
-			return this.fetch(entity._uri('/' + Type.index))
+			return this.fetch(entity._uri('/' + Type.index), entity)
 		}
 	}
 
