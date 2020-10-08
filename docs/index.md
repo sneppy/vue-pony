@@ -17,13 +17,15 @@ Index
       1. [Entity relationships](#entity-relationships)
 2. [Reading data](./reading-data)
    1. [Fetching entities](./reading-data#fetching-entities)
+      1. [Data centralization and aliases](./reading-data.md#data-centralization-and-aliases)
    2. [Data reactivity](./reading-data#data-reactivity)
-   3. [Waiting for data](./wip)
+   3. [Waiting for data](./reading-data#waiting-for-data)
 3. [Writing data](./writing-data)
    1. [Creating entities](./writing-data#creating-entities)
    2. [Deleting entities](./wip)
    3. [Updating entities](./wip)
    4. [Updating sets](./wip)
+4. [Reference](./wip)
 
 Installation
 ------------

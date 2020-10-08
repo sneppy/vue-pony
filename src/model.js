@@ -134,6 +134,35 @@ export default function() {
 		}
 
 		/**
+		 * Updates the entity, fetching data from server.
+		 * @param {boolean} [force=false] - forces update
+		 * @returns {this} self
+		 */
+		_update(force = false)
+		{
+			// Get fetch URI
+			const uri = this._uri()
+			
+			/**
+			 * Do update function
+			 */
+			const doUpdate = async () => this.__record__.fromRequest(request('GET', uri))
+
+			if (force)
+			{
+				// Force update, don't check expired
+				this.__record__.asyncUpdate(doUpdate)
+			}
+			else
+			{
+				// Update if necessary
+				this.__record__.maybeUpdate(doUpdate)
+			}
+
+			return this
+		}
+
+		/**
 		 * Return a promise that resolves on record event.
 		 * @param {string} [event='update'] - record event
 		 * @param {function} [what] - transform callback
