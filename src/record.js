@@ -80,6 +80,19 @@ export default class Record
 	}
 
 	/**
+	 * Merge external data with record data
+	 * @param {Object} data - source data
+	 * @return {Object} record data
+	 */
+	merge(data)
+	{
+		// Merge data objects
+		Object.assign(this.data, data)
+
+		return this.data
+	}
+
+	/**
 	 * Update record from request.
 	 * @param {function} request - request dispatcher
 	 * @param  {...any} params - optional set of parameters to pass to dispatcher
@@ -109,7 +122,7 @@ export default class Record
 	
 	/**
 	 * Perform an update asynchronously
-	 * @param {function} doUpdate - update callback
+	 * @param {UpdateCallback} doUpdate - update callback
 	 * @returns {Record} self
 	 */
 	async asyncUpdate(doUpdate)
@@ -120,7 +133,7 @@ export default class Record
 		try
 		{
 			// Perform update
-			await doUpdate()
+			await doUpdate(this.fromRequest.bind(this))
 
 			// Notify observers
 			this._afterUpdate()
@@ -153,7 +166,7 @@ export default class Record
 			if (this.isExpired())
 			{
 				// Perform update
-				await doUpdate()
+				await doUpdate(this.fromRequest.bind(this))
 
 				// Notify observers
 				this._afterUpdate()
@@ -185,7 +198,7 @@ export default class Record
 		try
 		{
 			// Execute delete function
-			await doDelete()
+			await doDelete(this.fromRequest.bind(this))
 
 			// Notify observers
 			this._afterDelete()
@@ -307,3 +320,10 @@ export default class Record
 		return new Promise((resolve, reject) => this.on(event, [ (self) => (resolve(self), false), reject ]))
 	}
 }
+
+/**
+ * Callback required when updating a record
+ * @callback UpdateCallback
+ * @param {*} req - request object
+ * @param {...*} data - request data
+ */

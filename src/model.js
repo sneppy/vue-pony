@@ -148,7 +148,7 @@ export default function() {
 				/**
 				 * Do update function
 				 */
-				const doUpdate = () => this.__record__.fromRequest(request('GET', uri))
+				const doUpdate = (fromRequest) => fromRequest(request('GET', uri))
 
 				// If force update don't check expired
 				if (force) this.__record__.asyncUpdate(doUpdate)
@@ -171,8 +171,32 @@ export default function() {
 				uri = uri || this._uri()
 
 				// Send delete request and delete record
-				this.__record__.asyncDelete(() => this.__record__.fromRequest(request('DELETE', uri)))
+				this.__record__.asyncDelete((fromRequest) => fromRequest(request('DELETE', uri)))
 			}
+		}
+
+		/**
+		 * Updates server data with a PUT request (sends complete entity data).
+		 * @param {Object} data - object with additional data, merged with entity data
+		 * @param {string} uri - URI string if different from entity URI
+		 * @returns {Promise<this>} promise that resolves with self
+		 */
+		async _put(data = {}, uri)
+		{
+			if (this.__record__)
+			{
+				// Merge data locally first
+				const params = this.__record__.merge(data)
+
+				// Get put URI
+				const uri = this._uri()
+
+				// Perform PUT request
+				await this.__record__.asyncUpdate((fromRequest) => fromRequest(request('PUT', uri), params))
+
+			}
+			
+			return this
 		}
 
 		/**
@@ -224,10 +248,10 @@ export default function() {
 			let entity = new this(record.data, record)
 
 			// Async update record
-			record.maybeUpdate(async () => {
+			record.maybeUpdate(async (fromRequest) => {
 
 				// Update record from request
-				await record.fromRequest(request('GET', uri))
+				await fromRequest(request('GET', uri))
 
 				// Get entity's primary URI
 				const pkuri = entity._uri()
@@ -267,10 +291,10 @@ export default function() {
 			let entity = new this(record.data, record)
 
 			// Async update record
-			record.asyncUpdate(async () => {
+			record.asyncUpdate(async (fromRequest) => {
 				
 				// Update record from request
-				await record.fromRequest(request('POST', uri), dump(params))
+				await fromRequest(request('POST', uri), dump(params))
 
 				// Get entity's primary URI
 				const pkuri = entity._uri()
