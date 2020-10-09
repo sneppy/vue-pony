@@ -9,6 +9,7 @@ In this section we see how we can use _vue-pony_ to fetch entities from the API 
 - [Reading data](#reading-data)
 	- [Fetching entities](#fetching-entities)
 		- [Data centralization and aliases](#data-centralization-and-aliases)
+		- [Fetching with sets](#fetching-with-sets)
 	- [Data reactivity](#data-reactivity)
 	- [Waiting for data](#waiting-for-data)
 
@@ -126,6 +127,27 @@ console.log(User.get(1)._pk, User.get('charlie')._pk, User.get('charlie.brown@sn
 In which case, it creates an alias for the non-primary URIs.
 
 > There are still some corner cases where the system will break. I'm looking for a method to fix this.
+
+### Fetching with sets
+
+Sets can also be used to fetch entities outside relationships:
+
+- `Set.all(uri)` returns a set of entities by sending a request to `uri`. If this parameter is not specified, defaults to `/<index>`. The functions is synchronous;
+- `Set.search(query, uri)` returns a set of results that match the query. If `uri` is undefined, it sends a `GET` request to `/<index>/search?{query}`.
+
+`Set.search` is asynchronous (it returns a promise that resolves with the set), and it doesn't store results in the centralized store:
+
+```javascript
+Set(Post).search({
+	title: 'Peanuts
+}).then((posts) => console.log([ ...posts ]))
+```
+
+The following aliases are also available:
+
+- `Type.get()` (without arguments) for `Set(Type).all()`;
+- `Type.search(query, uri)` for `Set(Type).search(query, uri)`;
+- one-to-many relationship for `Set(Type).in(entity)`.
 
 Data reactivity
 ---------------

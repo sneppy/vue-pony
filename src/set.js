@@ -1,7 +1,8 @@
 import { SetType, ModelType } from './types'
-import { arrify, parseIdx } from './util'
+import { arrify, dump, parseIdx } from './util'
 import Record from './record'
 import Future from './future'
+import { identity } from 'lodash'
 
 /**
  * Spawn a new entity which is part of a set.
@@ -196,6 +197,16 @@ export default function(Type) {
 		}
 
 		/**
+		 * Returns the entire set of entities.
+		 * @param {string} uri - optional URI
+		 * @returns {this} set of entities
+		 */
+		static all(uri)
+		{
+			return this.fetch(uri || Type.uri())
+		}
+
+		/**
 		 * Returns a set of entities associated to given entity.
 		 * @param {ModelType} entity - entity this set belongs to
 		 * @return {this} set of entities in this entity
@@ -204,6 +215,24 @@ export default function(Type) {
 		{
 			// Get set URI
 			return this.fetch(entity._uri('/' + Type.index), entity)
+		}
+
+		/**
+		 * Perform a search, returns results.
+		 * @param {Object} query - query object
+		 * @param {string} uri - search URI if differs from default
+		 * @returns {this} set of result
+		 */
+		static async search(query, uri)
+		{
+			// Get search URI
+			uri = uri || Type.uri([], '/search')
+
+			// Get data from request
+			let [ data ] = await request('GET', uri, dump(query))()
+
+			// Return set of results
+			return new this(data)
 		}
 	}
 

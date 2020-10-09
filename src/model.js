@@ -11,7 +11,7 @@ import Future from './future'
 export default function() {
 
 	// Get context
-	const { request, store } = this
+	const { request, store, Set } = this
 	const isFutureMode = () => this._futureMode
 	
 	/**
@@ -248,7 +248,7 @@ export default function() {
 		 */
 		static get(...alias)
 		{
-			return this.fetch(this.uri(dump(alias)))
+			return alias.length ? this.fetch(this.uri(dump(alias))) : Set(this).all()
 		}
 
 		/**
@@ -281,6 +281,14 @@ export default function() {
 
 			// Return created entity
 			return entity
+		}
+
+		/**
+		 * @see Set#search
+		 */
+		static search(query, uri)
+		{
+			return Set(this).search(query, uri)
 		}
 	}
 
