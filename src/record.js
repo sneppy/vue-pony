@@ -34,9 +34,80 @@ export default class Record
 	constructor(data)
 	{
 		/**
+		 * Creates a new tracker object from the given one.
+		 * @param {Object} obj - data object to wrap
+		 * @returns {Proxy} tracker
+		 */
+		const Tracker = (obj, onTrackProp) => {
+		
+			/**
+			 * Returns patch mode flag
+			 * @returns {boolean} true if patching
+			 */
+			const isPatchMode = () => this._patchMode
+
+			return new Proxy(obj, {
+				/**
+				 * 
+				 * @param {Object} target - data object
+				 * @param {string|Symbol|number} prop - prop name
+				 * @param {*} value - prop value
+				 * @param {Proxy} self - proxy object
+				 * @returns {*} requested prop value
+				 */
+				get(target, prop, self) {
+
+					// Get value
+					let value = Reflect.get(...arguments)
+					
+					if (isPatchMode() && typeof value === 'object')
+					{
+						// Return tracker
+						return Tracker(value, onTrackProp || (() => {
+
+							// TODO: track only top level dep
+							console.log('TRACK', prop)
+						}))
+					}
+					else return value
+				},
+
+				/**
+				 * If in patch mode, keeps track of changes made.
+				 * @param {Object} target - data object
+				 * @param {string|Symbol|number} prop - prop name
+				 * @param {*} value - prop value
+				 * @param {Proxy} self - proxy object
+				 * @returns {boolean}
+				 */
+				set(target, prop, value, self) {
+
+					// Get old value
+					const oldValue = Reflect.get(target, prop, self)
+
+					if (Reflect.has(target, prop) && Reflect.set(...arguments))
+					{
+						// If set was ok, try to track patches
+						if (isPatchMode() && (value !== oldValue))
+						{
+							if (onTrackProp) onTrackProp()
+							else
+							{
+								console.log('TRACK', prop)
+							}
+						}
+
+						return true
+					}
+					else return Reflect.set(...arguments)
+				}
+			})
+		}
+
+		/**
 		 * Record data.
 		 */
-		this.data = data
+		this.data = Tracker(data)
 
 		/**
 		 * Record status, either an HTTP status or `0` if unset.
@@ -49,16 +120,22 @@ export default class Record
 		this._expires = Date.now()
 
 		/**
-		 * Mutex used to prevent writing conflicts
+		 * Mutex used to prevent writing conflicts.
 		 * @private
 		 */
 		this._lock = markRaw(new Mutex)
 
 		/**
-		 * List of observers
+		 * List of observers.
 		 * @private
 		 */
 		this._observer = markRaw({})
+
+		/**
+		 * Patch mode flag.
+		 * @private
+		 */
+		this._patchMode = false
 	}
 
 	/**
@@ -77,6 +154,23 @@ export default class Record
 	isReady()
 	{
 		return this.status !== 0
+	}
+
+	/**
+	 * 
+	 * @param {*} doPatch 
+	 */
+	_withPatchMode(doPatch)
+	{
+		// TODO: Do we need locks?
+		// Set patch flag
+		this._patchMode = true
+
+		// Do patch
+		doPatch()
+
+		// Uset patch flag
+		this._patchMode = false
 	}
 
 	/**

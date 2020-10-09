@@ -38,7 +38,7 @@ export default function() {
 				get(target, prop, self) {
 
 					// Get model type
-					let Type = target.constructor
+					const Type = target.constructor
 
 					// Future mode
 					if (isFutureMode())
@@ -91,6 +91,38 @@ export default function() {
 							// * This means that unlike in 1.x we can override model props
 							return Reflect.has(target, prop) ? Reflect.get(...arguments) : data[prop]
 					}
+				},
+
+				/**
+				 * Setter trap method.
+				 */
+				set(target, prop, value, self) {
+
+					// Get model type
+					const Type = target.constructor
+
+					if (prop in Type)
+					{
+						// Check if is model
+						if (isModel(Type[prop].prototype))
+						{
+							// TODO: Handle model assignment
+							return false
+						}
+					}
+
+					if (Reflect.has(data, prop))
+					{
+						if (true)
+						{
+							// Set data property
+							data[prop] = value
+							return true
+						}
+						else return false // TODO: Add readonly prop? Like `id`?
+					}
+
+					return Reflect.set(...arguments)
 				}
 			})
 		}
@@ -177,8 +209,8 @@ export default function() {
 
 		/**
 		 * Updates server data with a PUT request (sends complete entity data).
-		 * @param {Object} data - object with additional data, merged with entity data
-		 * @param {string} uri - URI string if different from entity URI
+		 * @param {Object} [data={}] - object with additional data, merged with entity data
+		 * @param {string} [uri] - URI string if different from entity URI
 		 * @returns {Promise<this>} promise that resolves with self
 		 */
 		async _put(data = {}, uri)
@@ -193,9 +225,24 @@ export default function() {
 
 				// Perform PUT request
 				await this.__record__.asyncUpdate((fromRequest) => fromRequest(request('PUT', uri), params))
-
 			}
 			
+			return this
+		}
+
+		_track(doPatch)
+		{
+			// Use patch mode to keep track of changes to data
+			if (this.__record__) this.__record__._withPatchMode(() => doPatch(this))
+		}
+		
+		async _patch(doPatch, uri)
+		{
+			if (this.__record__)
+			{
+				// TODO: Do patch before patching				
+			}
+
 			return this
 		}
 
