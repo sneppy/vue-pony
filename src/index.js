@@ -1,6 +1,6 @@
-import { Mutex } from "async-mutex"
-import { dearrify } from "./util"
-import request from "./request"
+import { Mutex } from 'async-mutex'
+import { dearrify } from './util'
+import request from './request'
 import Store from './store'
 import Model from './model'
 import Set from './set'

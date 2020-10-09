@@ -1,5 +1,18 @@
 import { createHash } from 'crypto'
-import { reactive } from 'vue'
+
+// Vue reactive function
+let reactive
+
+try
+{
+	// If Vue is a dependency, import `reactive`
+	reactive = require('vue').reactive
+}
+catch (err)
+{
+	// Inform that Vue is not a dependency
+	console.warn(err)
+}
 
 /**
  * Hashes the given key.
@@ -20,7 +33,7 @@ export default function Store(options = {}) {
 	const { hash = defaultHashFn, reactive: makeReactive = true } = options
 
 	// Reactive store
-	let store = makeReactive ? reactive({}) : {}
+	let store = makeReactive && reactive ? reactive({}) : {}
 
 	/**
 	 * Returns record identified by key or `undefined` if not found.

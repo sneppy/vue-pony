@@ -1,6 +1,6 @@
 import { identity } from 'lodash';
 import { arrify, dump } from './util'
-import { isModel, isSet, ModelType } from "./types";
+import { isModel, isSet, ModelType } from './types';
 import Record from './record'
 import Future from './future'
 

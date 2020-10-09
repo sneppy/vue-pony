@@ -1,8 +1,26 @@
-import { isArray, isFunction } from "lodash"
-import { markRaw } from "vue"
+import { isArray, isFunction } from 'lodash'
 import { v4 as uuid } from 'uuid'
-import { Mutex } from "async-mutex"
-import { arrify } from "./util"
+import { Mutex } from 'async-mutex'
+import { arrify } from './util'
+
+/**
+ * Overrides default Vue function.
+ * @param {Object} obj - object marked as raw
+ * @returns {Object} same object, marked raw
+ */
+const markRaw = (obj) => {
+
+	try
+	{
+		// Require and use 
+		return require('vue').markRaw(obj)
+	}
+	catch (err)
+	{
+		// Silent, don't mark raw
+		return obj
+	}
+}
 
 /**
  * This class represents a snapshot of data fetched from the server.

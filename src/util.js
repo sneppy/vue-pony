@@ -1,5 +1,5 @@
-import { isObject } from "lodash"
-import { isModel } from "./types"
+import { isObject } from 'lodash'
+import { isModel } from './types'
 
 /**
  * Returns wrapped value if not already array.

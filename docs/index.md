@@ -4,8 +4,6 @@ _vue-pony_ is an intuitive and elegant library for interfacing with your REST AP
 
 As the name suggests, _vue-pony_ was born as a [Vue](https://v3.vuejs.org/) plugin. However, it can easily be used as a standalone library.
 
-> At the moment of writing this documentation, Vue is still listed as a dependency.
-
 Index
 -----
 
