@@ -1,4 +1,4 @@
-import { isArray, isFunction } from 'lodash'
+import { isArray, isFunction, cloneDeepWith } from 'lodash'
 import { v4 as uuid } from 'uuid'
 import { Mutex } from 'async-mutex'
 import { arrify } from './util'
@@ -23,6 +23,15 @@ const markRaw = (obj) => {
 }
 
 /**
+ * Creates an unreactive copy of the given object
+ * @param {Object} obj - reactive object
+ */
+const unreactive = (obj) => {
+
+	return cloneDeepWith(obj)
+}
+
+/**
  * This class represents a snapshot of data fetched from the server.
  */
 export default class Record
@@ -34,85 +43,105 @@ export default class Record
 	constructor(data)
 	{
 		/**
-		 * Creates a new tracker object from the given one.
-		 * @param {Object} obj - data object to wrap
-		 * @returns {Proxy} tracker
+		 * Returns true if recors is in patch mode
+		 * @return {boolean} patch mode flag
 		 */
-		const Tracker = (obj, onTrackProp) => {
+		const isPatchMode = () => !!this._patchMode
+
+		// Ref to self
+		const record = this
 		
-			/**
-			 * Returns patch mode flag
-			 * @returns {boolean} true if patching
-			 */
-			const isPatchMode = () => this._patchMode
-
-			return new Proxy(obj, {
-				/**
-				 * 
-				 * @param {Object} target - data object
-				 * @param {string|Symbol|number} prop - prop name
-				 * @param {*} value - prop value
-				 * @param {Proxy} self - proxy object
-				 * @returns {*} requested prop value
-				 */
-				get(target, prop, self) {
-
-					// Get value
-					let value = Reflect.get(...arguments)
-					
-					if (isPatchMode() && typeof value === 'object')
-					{
-						// Return tracker
-						return Tracker(value, onTrackProp || (() => {
-
-							// TODO: track only top level dep
-							console.log('TRACK', prop)
-						}))
-					}
-					else return value
-				},
-
-				/**
-				 * If in patch mode, keeps track of changes made.
-				 * @param {Object} target - data object
-				 * @param {string|Symbol|number} prop - prop name
-				 * @param {*} value - prop value
-				 * @param {Proxy} self - proxy object
-				 * @returns {boolean}
-				 */
-				set(target, prop, value, self) {
-
-					// Get old value
-					const oldValue = Reflect.get(target, prop, self)
-
-					if (Reflect.has(target, prop) && Reflect.set(...arguments))
-					{
-						// If set was ok, try to track patches
-						if (isPatchMode() && (value !== oldValue))
-						{
-							if (onTrackProp) onTrackProp()
-							else
-							{
-								console.log('TRACK', prop)
-							}
-						}
-
-						return true
-					}
-					else return Reflect.set(...arguments)
-				}
-			})
-		}
-
 		/**
 		 * Record data.
 		 */
-		this.data = Tracker(data)
+		this.data = new Proxy(data, {
+			/**
+			 * Return data from patch if any.
+			 * if in patch mode returns tracker.
+			 */
+			get(target, prop, self) {
+
+				if (prop in record.patches)
+				{
+					// Return patched value
+					return record.patches[prop]
+				}
+
+				// Get actual value
+				let value = Reflect.get(...arguments)
+				
+				if (isPatchMode() && (typeof value === 'object'))
+				{
+					/**
+					 * Creates tracker from obj.
+					 */
+					const Tracker = (obj, getParent) => {
+
+						return new Proxy(obj, {
+							/**
+							 * Wrap another tracker if object.
+							 */
+							get(target, prop, self) {
+
+								// Get prop value
+								const value = Reflect.get(...arguments)
+
+								if (typeof value === 'object' && !prop.startsWith('__v_'))
+								{
+									// If is object, return another tracker
+									return Tracker(value, () => getParent()[prop])
+								}
+								// Return value as-is
+								return value
+							},
+
+							/**
+							 *
+							 */
+							set(target, prop, value, self) {
+
+								if (prop in target)
+								{
+									// Write value onto parent (should create a patch)
+									return (getParent()[prop] = value, true)
+								}
+								// If not a property, don't patch it
+								// TODO: Not sure, this doesn't allow us to add properties, I think I should allow it
+								else return Reflect.set(...arguments)
+							}
+						})
+					}
+
+					// Return tracker, if value will be written create unreactive copy of value
+					return Tracker(value, () => (record.patches[prop] = unreactive(value)))
+				}
+				// If not in patch mode or not object, return value as-is
+				else return value
+			},
+
+			/**
+			 * If in patch mode, keeps track of changes.
+			 */
+			set(target, prop, value, self) {
+
+				if (isPatchMode() && (prop in target))
+				{
+					// Patch value
+					return (record.patches[prop] = value, true)
+				}
+				else return Reflect.set(...arguments)
+			}
+		})
 
 		/**
 		 * Record status, either an HTTP status or `0` if unset.
 		 */
 		this.status = 0
+
+		/**
+		 * Data patches.
+		 */
+		this.patches = {}
 
 		/**
 		 * 
@@ -157,23 +186,6 @@ export default class Record
 	}
 
 	/**
-	 * 
-	 * @param {*} doPatch 
-	 */
-	_withPatchMode(doPatch)
-	{
-		// TODO: Do we need locks?
-		// Set patch flag
-		this._patchMode = true
-
-		// Do patch
-		doPatch()
-
-		// Uset patch flag
-		this._patchMode = false
-	}
-
-	/**
 	 * Merge external data with record data
 	 * @param {Object} data - source data
 	 * @return {Object} record data
@@ -184,6 +196,39 @@ export default class Record
 		Object.assign(this.data, data)
 
 		return this.data
+	}
+
+	/**
+	 * Execute function with data lock
+	 */
+	async withDataLock(func)
+	{
+		// Lock data
+		const release = await this._lock.acquire()
+
+		// Execute function
+		await func(this)
+
+		// Unlock data
+		release()
+	}
+
+	/**
+	 * Execute patch function in patch mode.
+	 * @param {function} doPatch - patch function
+	 */
+	async withPatchMode(doPatch)
+	{
+		// Lock data
+		const release = await this._lock.acquire()
+
+		// Do patch
+		this._patchMode = true
+		doPatch()
+		this._patchMode = false
+		
+		// Unlokc data
+		release()
 	}
 
 	/**
@@ -212,6 +257,8 @@ export default class Record
 			// Merge objects
 			Object.assign(this.data, data)
 		}
+
+		return this
 	}
 	
 	/**
@@ -239,6 +286,7 @@ export default class Record
 		finally
 		{
 			// Release lock
+			// TODO: This must always be called, make sure it stays that way
 			release()
 		}
 

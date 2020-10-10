@@ -1,4 +1,4 @@
-import { identity } from 'lodash';
+import { identity, reject } from 'lodash';
 import { arrify, dump } from './util'
 import { isModel, isSet, ModelType } from './types';
 import Record from './record'
@@ -111,13 +111,12 @@ export default function() {
 						}
 					}
 
-					if (Reflect.has(data, prop))
+					if (prop in data)
 					{
 						if (true)
 						{
 							// Set data property
-							data[prop] = value
-							return true
+							return (data[prop] = value, true)
 						}
 						else return false // TODO: Add readonly prop? Like `id`?
 					}
@@ -168,23 +167,24 @@ export default function() {
 		/**
 		 * Updates the entity, fetching data from server.
 		 * @param {boolean} [force=false] - forces update
+		 * @param {string} [uri] - optional URI, if different from entity URI
 		 * @returns {this} self
 		 */
-		_update(force = false)
+		_update(force = false, uri)
 		{
 			if (this.__record__)
-			{
-				// Get fetch URI
-				const uri = this._uri()
-				
+			{				
 				/**
 				 * Do update function
 				 */
-				const doUpdate = (fromRequest) => fromRequest(request('GET', uri))
+				const doUpdate = (fromRequest) => {
+					
+					return fromRequest(request('GET', uri || this._uri()))
+				}
 
-				// If force update don't check expired
-				if (force) this.__record__.asyncUpdate(doUpdate)
-				else this.__record__.maybeUpdate(doUpdate)
+				force // If force update don't check expired
+					? this.__record__.asyncUpdate(doUpdate)
+					: this.__record__.maybeUpdate(doUpdate)
 			}
 
 			return this
@@ -199,11 +199,12 @@ export default function() {
 		{
 			if (this.__record__)
 			{
-				// Get delete URI
-				uri = uri || this._uri()
-
 				// Send delete request and delete record
-				this.__record__.asyncDelete((fromRequest) => fromRequest(request('DELETE', uri)))
+				await this.__record__.asyncDelete((fromRequest) => {
+					
+					// Update from request
+					return fromRequest(request('DELETE', uri || this._uri()))
+				})
 			}
 		}
 
@@ -217,33 +218,69 @@ export default function() {
 		{
 			if (this.__record__)
 			{
-				// Merge data locally first
-				const params = this.__record__.merge(data)
+				// Merge entity data and provided data 
+				const params = { ...this.__data__, ...data }
 
-				// Get put URI
-				const uri = this._uri()
-
-				// Perform PUT request
-				await this.__record__.asyncUpdate((fromRequest) => fromRequest(request('PUT', uri), params))
+				// Send update request and update record
+				await this.__record__.asyncUpdate((fromRequest) => {
+					
+					// Perform request
+					return fromRequest(request('PUT', uri || this._uri()), params)
+				})
 			}
 			
 			return this
 		}
-
-		_track(doPatch)
-		{
-			// Use patch mode to keep track of changes to data
-			if (this.__record__) this.__record__._withPatchMode(() => doPatch(this))
-		}
 		
-		async _patch(doPatch, uri)
+		/**
+		 * Execute patch function, tracking changes to data.
+		 * Patch function is provided a patch callback to
+		 * effectively patch the entity.
+		 * If patch function is not provided, data is simply
+		 * patched as-is.
+		 * @param {function} doPatch - patch function
+		 * @param {string} uri - optional URI, if different from entity URI
+		 * @returns {Promise} promise that resolves with patched entity
+		 */
+		_patch(doPatch, uri)
 		{
-			if (this.__record__)
-			{
-				// TODO: Do patch before patching				
-			}
+			return new Promise((resolve, reject) => {
 
-			return this
+				if (this.__record__)
+				{
+					/**
+					 * Dispatch request, and resolve patch promise
+					 */
+					const patch = () => {
+
+						// TODO: Fetch patches from record
+						const patches = this.__record__.patches
+
+						// Do async update
+						this.__record__.asyncUpdate((fromRequest) => {
+
+							// Update from request
+							return fromRequest(request('PATCH', uri || this._uri()), patches)
+						})
+							// Wait update and resolve
+							.then(() => resolve(this))
+							.catch((err) => reject(err))
+					}
+
+					if (doPatch)
+					{
+						// If patch function defined, execute patch function
+						this.__record__.withPatchMode(() => doPatch(patch))
+					}
+					else
+					{
+						// If not patch function, just patch right away
+						patch()
+					}
+				}
+				// Ignore otherwise
+				else resolve(this)
+			})
 		}
 
 		/**

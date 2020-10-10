@@ -68,6 +68,7 @@ export default function request(base, method, uri, params = {}, headers = {}) {
 				switch (xhr.readyState)
 				{
 					case XMLHttpRequest.DONE:
+					{
 						if (xhr.status < 400)
 						{
 							// If status is not error, resolve promise
@@ -80,6 +81,7 @@ export default function request(base, method, uri, params = {}, headers = {}) {
 						}
 
 						break
+					}
 				}
 			}
 

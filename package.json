@@ -1,6 +1,6 @@
 {
   "name": "@sneppy/vue-pony",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "An intuitive and elegant library for interfacing with your REST API",
   "main": "dist/vue-pony.cjs.min.js",
   "module": "dist/vue-pony.esm.min.js",
