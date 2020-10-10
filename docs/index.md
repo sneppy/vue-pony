@@ -16,13 +16,13 @@ Index
 2. [Reading data](./reading-data)
    - [Fetching entities](./reading-data#fetching-entities)
       - [Data centralization and aliases](./reading-data.md#data-centralization-and-aliases)
+      - [Fetching with sets](./reading-data.md#fetching-with-sets)
    - [Data reactivity](./reading-data#data-reactivity)
    - [Waiting for data](./reading-data#waiting-for-data)
 3. [Writing data](./writing-data)
    - [Creating entities](./writing-data#creating-entities)
-   - [Deleting entities](./wip)
-   - [Updating entities](./wip)
-   - [Updating sets](./wip)
+   - [Deleting entities](./writing-data#deleting-entities)
+   - [Updating entities](./writing-data#updating-entities)
 4. [Reference](./wip)
 
 Installation
