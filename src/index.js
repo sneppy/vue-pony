@@ -13,18 +13,23 @@ export default class Pony
 	/**
 	 * Creates a new instance of Pony.
 	 * @param {Object} options - set of API options
-	 * @param {URL|string} options.base - API base URL
+	 * @param {string} options.base - API base URL
 	 * @param {AuthorizeRequest} [options.authorize] - authorization callback
 	 */
 	constructor({ base, authorize = null } = {})
 	{
 		/**
-		 * Request method bound to this API.
+		 * Request factory bound to this API.
+		 * 
+		 * @type BoundRequest
 		 */
 		this.request = request.bind(this, base)
 		
 		/**
-		 * Authorize callback
+		 * Authorize callback. Executed to authorize
+		 * outgoing requests.
+		 * 
+		 * @type AuthorizeRequest
 		 */
 		this.authorize = authorize
 
@@ -34,19 +39,26 @@ export default class Pony
 		this.store = Store()
 
 		/**
-		 * Future mode flag.
+		 * Future mode flag. When true forces property
+		 * access on entities to return a promise.
+		 * 
 		 * @type boolean
+		 * @private
 		 */
 		this._futureMode = false
 
 		/**
-		 * General purpose mutex.
+		 * Lock used for future mode.
+		 * 
+		 * @type Mutex
+		 * @private
 		 */
 		this._lock = new Mutex
 	}
 
 	/**
 	 * Model class associated to this Pony instance.
+	 * 
 	 * @type {typeof Model}
 	 */
 	get Model()
@@ -56,6 +68,7 @@ export default class Pony
 
 	/**
 	 * Set class associated to this Pony instance.
+	 * 
 	 * @type {typeof Set}
 	 */
 	get Set()
@@ -64,9 +77,12 @@ export default class Pony
 	}
 
 	/**
-	 * Evaluate expression forcing models to return Futures.
+	 * Evaluates expression, forcing models to return promises
+	 * instead of properties.
+	 * 
 	 * @param {...function} exprs - expressions to evaluate
 	 * @returns {Promise} expression promise
+	 * @private
 	 */
 	async _withFutureMode(...exprs)
 	{
@@ -85,7 +101,8 @@ export default class Pony
 	}
 	
 	/**
-	 * Wait for expressions to resolve.
+	 * Waits for entities in expressions to be ready.
+	 * 
 	 * @param  {...function} exprs - zero or more expressions
 	 * @returns {*} single result or array of results
 	 */
@@ -111,7 +128,25 @@ export default class Pony
 }
 
 /**
- * Callback used to authorize a request
+ * Request method, bound to a given API instance. It
+ * accepts the various {@link request} parameters,
+ * except `base` which is bound to the API base URL.
+ * It returns the dispatcher function.
+ * 
+ * @function BoundRequest
+ * @param {string} method - request HTTP method
+ * @param {string} uri - endpoint realtive URI
+ * @param {Object} [params = {}] - URL query parameters (key: value)
+ * @param {Object} [headers = {}] - HTTP headers map
+ * @returns {function} dispatcher
+ */
+
+/**
+ * Callback used to authorize a request. It receives the
+ * XMLHttpRequest object as parameter, which it can modify
+ * to authorize the outgoing request (e.g. by adding an
+ * 'Authorization' header).
+ * 
  * @callback AuthorizeRequest
  * @param {XMLHttpRequest} xhr the xhr request that must be authorized
  */

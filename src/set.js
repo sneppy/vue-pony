@@ -6,8 +6,9 @@ import { identity } from 'lodash'
 
 /**
  * Spawn a new entity which is part of a set.
+ * 
  * @param {typeof ModelType} Type - model type
- * @param {}
+ * @param {Array<string|number>} alias - entity alias
  * @return {ModelType} spawned entity
  */
 function spawnEntity(Type, ...alias) {
@@ -32,8 +33,9 @@ function spawnEntity(Type, ...alias) {
 
 /**
  * Returns a set factory bound to a context.
+ * 
  * @param {typeof ModelType} Type - model type
- * @returns {function} set factory
+ * @returns {typeof Set} set factory
  */
 export default function(Type) {
 
@@ -48,6 +50,7 @@ export default function(Type) {
 	{
 		/**
 		 * Create a new set from a set of indices.
+		 * 
 		 * @param {Array} indices - list of entity indices
 		 * @param {Record} [record] - store record 
 		 * @param {ModelType} [owner] - entity this set belongs to
@@ -56,11 +59,9 @@ export default function(Type) {
 		{
 			return new Proxy(super(), {
 				/**
-				 * Getter trap method.
-				 * @param {Object} target - target object
-				 * @param {number|string|Symbol} prop - property name
-				 * @param {Proxy} self - proxy object
-				 * @returns {*}
+				 * Getter trap method. If prop is index returns
+				 * i-th entity, otherwise return member or
+				 * slice of properties.
 				 */
 				get(target, prop, self)
 				{
@@ -106,7 +107,8 @@ export default function(Type) {
 		}
 
 		/**
-		 * Set length.
+		 * Length of the set.
+		 * 
 		 * @type number
 		 */
 		get _length()
@@ -116,6 +118,7 @@ export default function(Type) {
 		
 		/**
 		 * Array representation. Can be used in place of spread with {@link Pony#wait}.
+		 * 
 		 * @type Array
 		 */
 		get _array()
@@ -134,8 +137,9 @@ export default function(Type) {
 
 		/**
 		 * Map entities, return mapped array (not set!).
+		 * 
 		 * @param {function} mapping - map function
-		 * @returns {Array} mappped array of entities
+		 * @returns {Array} mapped array of entities
 		 */
 		_map(mapping)
 		{
@@ -143,8 +147,12 @@ export default function(Type) {
 		}
 
 		/**
-		 * Creates a new instance of the given model and inserts it in the set.
+		 * Creates a new instance of the given model and
+		 * inserts it in the set.
 		 * 
+		 * @param {Object} params - creation parameters
+		 * @param {string} [uri] - create URI if different from default
+		 * @returns {ModelType} created entity
 		 */
 		_create(params, uri)
 		{
@@ -163,7 +171,8 @@ export default function(Type) {
 
 		/**
 		 * Return a promise that resolves on record event.
-		 * @param {string} [event='update'] - record event
+		 * 
+		 * @param {string} [event = 'update'] - record event
 		 * @param {function} [what] - transform callback
 		 * @returns {Promise} set or transform callback output
 		 */
@@ -179,10 +188,11 @@ export default function(Type) {
 		}
 
 		/**
-		 * Fetches a set of entity from the given endpoint.
-		 * @param {string} uri - set URI
-		 * @param {ModelType} owner - entity this set belongs to, if any
-		 * @returns {this} set of entities
+		 * Fetches a set of entities from the given endpoint.
+		 * 
+		 * @param {string} uri - endpoint URI
+		 * @param {ModelType} [owner] - entity this set belongs to, if any
+		 * @returns {Set} set of entities
 		 */
 		static fetch(uri, owner)
 		{
@@ -198,8 +208,9 @@ export default function(Type) {
 
 		/**
 		 * Returns the entire set of entities.
+		 * 
 		 * @param {string} uri - optional URI
-		 * @returns {this} set of entities
+		 * @returns {Set} set of entities
 		 */
 		static all(uri)
 		{
@@ -208,20 +219,22 @@ export default function(Type) {
 
 		/**
 		 * Returns a set of entities associated to given entity.
+		 * 
 		 * @param {ModelType} entity - entity this set belongs to
-		 * @return {this} set of entities in this entity
+		 * @return {Set} set of entities in this entity
 		 */
 		static in(entity)
 		{
-			// Get set URI
+			// Fetch at uri
 			return this.fetch(entity._uri('/' + Type.index), entity)
 		}
 
 		/**
 		 * Perform a search, returns results.
+		 * 
 		 * @param {Object} query - query object
-		 * @param {string} uri - search URI if differs from default
-		 * @returns {this} set of result
+		 * @param {string} [uri] - search URI if different from default
+		 * @returns {Set} set of result
 		 */
 		static async search(query, uri)
 		{

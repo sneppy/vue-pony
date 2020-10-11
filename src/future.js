@@ -2,8 +2,9 @@ import { isFunction } from 'lodash'
 import { isModel, isSet } from './types'
 
 /**
- * Wraps a promise in a Proxy that creates a new promise for accessed property.
- * @param {Promise<*>} future - promise that will resolve with future value
+ * Wraps a promise in a Proxy that creates a new promise for accessed properties.
+ * 
+ * @param {Promise} future - promise that will resolve with future value
  * @returns {Proxy} proxied promise, a.k.a. future
  */
 export default function Future(future) {
@@ -11,7 +12,9 @@ export default function Future(future) {
 	// Return proxy around promise
 	return new Proxy(future, {
 		/**
-		 * Future getter.
+		 * Future getter. If prop is in `Promise` prototype
+		 * return as-is, otherwise resolve future and wrap
+		 * it in another future container.
 		 */
 		get(target, prop, self) {
 
@@ -41,10 +44,8 @@ export default function Future(future) {
 		},
 
 		/**
-		 * Trap for function call.
-		 * @param {Promise} target - future value
-		 * @param {*} ctx - function context
-		 * @param {Array} args - arguments array
+		 * Trap for function call. First resolve promise
+		 * and then calls the function.
 		 */
 		//! Unfortunately, per specs, `target` must be a callable object.
 		//! Promises are not callable object, therefore this piece of

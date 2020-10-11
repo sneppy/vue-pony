@@ -4,7 +4,9 @@ import { Mutex } from 'async-mutex'
 import { arrify } from './util'
 
 /**
- * Overrides default Vue function.
+ * Tries to require Vue module and invoke
+ * `markRaw`, otherwise leaves object as-is.
+ * 
  * @param {Object} obj - object marked as raw
  * @returns {Object} same object, marked raw
  */
@@ -23,27 +25,32 @@ const markRaw = (obj) => {
 }
 
 /**
- * Creates an unreactive copy of the given object
+ * Creates an unreactive copy of the given object.
+ * 
  * @param {Object} obj - reactive object
+ * @returns {Object} stripped copy
  */
 const unreactive = (obj) => {
 
-	return cloneDeepWith(obj)
+	return cloneDeepWith(obj, /* TODO: Strip away `__v_` properties */)
 }
 
 /**
- * This class represents a snapshot of data fetched from the server.
+ * This class represents a snapshot of data
+ * fetched from the server.
  */
 export default class Record
 {
 	/**
-	 * Create a new record with given data.
+	 * Creates a new record with given data.
+	 * 
 	 * @param {*} data record data
 	 */
 	constructor(data)
 	{
 		/**
-		 * Returns true if recors is in patch mode
+		 * Returns true if record is in patch mode
+		 * 
 		 * @return {boolean} patch mode flag
 		 */
 		const isPatchMode = () => !!this._patchMode
@@ -79,7 +86,7 @@ export default class Record
 
 						return new Proxy(obj, {
 							/**
-							 * Wrap another tracker if object.
+							 * If object, wrap it in another tracker.
 							 */
 							get(target, prop, self) {
 
@@ -144,7 +151,8 @@ export default class Record
 		this.patches = {}
 
 		/**
-		 * 
+		 * Expiration timestamp
+		 * @private.
 		 */
 		this._expires = Date.now()
 
@@ -169,6 +177,7 @@ export default class Record
 
 	/**
 	 * Returns true if record is expired or invalid from the beginning.
+	 * 
 	 * @returns {boolean} expire flag
 	 */
 	isExpired()
@@ -178,7 +187,8 @@ export default class Record
 
 	/**
 	 * Returns true if request is fullfilled or rejected.
-	 * @returns {boolean} true if status is 200 or 201
+	 * 
+	 * @returns {boolean} true if has non-zero status
 	 */
 	isReady()
 	{
@@ -186,7 +196,8 @@ export default class Record
 	}
 
 	/**
-	 * Merge external data with record data
+	 * Merge external data with record data.
+	 * 
 	 * @param {Object} data - source data
 	 * @return {Object} record data
 	 */
@@ -215,6 +226,7 @@ export default class Record
 
 	/**
 	 * Execute patch function in patch mode.
+	 * 
 	 * @param {function} doPatch - patch function
 	 */
 	async withPatchMode(doPatch)
@@ -233,8 +245,10 @@ export default class Record
 
 	/**
 	 * Update record from request.
+	 * 
 	 * @param {function} request - request dispatcher
 	 * @param  {...any} params - optional set of parameters to pass to dispatcher
+	 * @returns {Promise<this>} promise that resolves with self
 	 */
 	async fromRequest(request, ...params)
 	{
@@ -264,7 +278,7 @@ export default class Record
 	/**
 	 * Perform an update asynchronously
 	 * @param {UpdateCallback} doUpdate - update callback
-	 * @returns {Record} self
+	 * @returns {Promise<this>} promise that resolves with self
 	 */
 	async asyncUpdate(doUpdate)
 	{
@@ -295,8 +309,9 @@ export default class Record
 	
 	/**
 	 * Like {@link asyncUpdate}, but only if record is unset or outdated.
+	 * 
 	 * @param {function} doUpdate - update callback
-	 * @returns {Promise<this>} self
+	 * @returns {Promise<this>} promise that resolves with self
 	 */
 	async maybeUpdate(doUpdate)
 	{
@@ -329,8 +344,9 @@ export default class Record
 
 	/**
 	 * Execute the delete function, delete record and notify observers.
+	 * 
 	 * @param {function} doDelete - delete function
-	 * @returns {Promise<this>} promise that resolves with record itself
+	 * @returns {Promise<this>} promise that resolves with self
 	 */
 	async asyncDelete(doDelete)
 	{
@@ -359,7 +375,8 @@ export default class Record
 	}
 	
 	/**
-	 * After record udpate notify observers
+	 * After record udpate notify observers.
+	 * 
 	 * @private
 	 */
 	_afterUpdate()
@@ -378,7 +395,8 @@ export default class Record
 	}
 
 	/**
-	 * After record delete, notify observers
+	 * After record delete, notify observers.
+	 * 
 	 * @private
 	 */
 	_afterDelete()
@@ -401,9 +419,10 @@ export default class Record
 	
 	/**
 	 * Subscribe observer to event.
+	 * 
 	 * @param {string} event - event type
 	 * @param {function|Array<function>} handler - event handler, or array with callback and error handler
-	 * @return {function} unsubscribe function
+	 * @return {unsub} unsubscribe function
 	 */
 	on(event, handler)
 	{
@@ -450,6 +469,7 @@ export default class Record
 		 * Unsubscribe function.
 		 */
 		const unsub = () => delete this._observer[event][id]
+		
 		return unsub
 	}
 

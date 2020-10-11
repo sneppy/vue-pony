@@ -2,7 +2,8 @@ import { isEmpty } from 'lodash'
 
 /**
  * Creates a new request and returns dispatch method.
- * @param {URL|string} base - base URL
+ * 
+ * @param {string} base - base URL
  * @param {string} method - HTTP method
  * @param {string} uri - enpoint relative to base URL
  * @param {Object} [params={}] - query parameters
@@ -27,6 +28,7 @@ export default function request(base, method, uri, params = {}, headers = {}) {
 
 	/**
 	 * Dispatches request.
+	 * 
 	 * @param {*} data - request body
 	 * @returns {Promise<Response>} promise that resolves with response body, status and xhr object
 	 */

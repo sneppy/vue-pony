@@ -1,11 +1,14 @@
-import { identity, reject } from 'lodash';
+import { identity } from 'lodash';
 import { arrify, dump } from './util'
 import { isModel, isSet, ModelType } from './types';
 import Record from './record'
 import Future from './future'
 
 /**
- * Returns a model class bound to a context.
+ * Returns a model class bound to a given
+ * API context. You should subclass this
+ * class to define models.
+ * 
  * @returns {typeof Model} model class
  */
 export default function() {
@@ -16,24 +19,26 @@ export default function() {
 	
 	/**
 	 * Base implementation class for all models.
+	 * 
 	 * @extends ModelType
 	 */
 	const Model = class extends ModelType
 	{
 		/**
-		 * Create a new model instance (entity).
+		 * Creates a new entity from given data.
+		 * 
 		 * @param {Object?} data - entity data
-		 * @param {Record} [record] - entity record
+		 * @param {Record} [record] - optional entity record
 		 */
 		constructor(data, record)
 		{
 			return new Proxy(super(), {
 				/**
-				 * Getter trap method.
-				 * @param {Object} target - target object
-				 * @param {number|string|Symbol} prop - property name
-				 * @param {Proxy} self - proxy object
-				 * @returns {*}
+				 * Getter trap method. If future method, returns
+				 * future; if prop is static property and is
+				 * either model or set, return relationships;
+				 * if prop is not member of class, return from
+				 * data.
 				 */
 				get(target, prop, self) {
 
@@ -94,7 +99,9 @@ export default function() {
 				},
 
 				/**
-				 * Setter trap method.
+				 * Setter trap method. Set data value; if
+				 * prop is static property with value model,
+				 * set value to entity primary key.
 				 */
 				set(target, prop, value, self) {
 
@@ -111,6 +118,7 @@ export default function() {
 						}
 					}
 
+					// TODO: This kinda breaks the flow of the getter
 					if (prop in data)
 					{
 						if (true)
@@ -128,6 +136,7 @@ export default function() {
 
 		/**
 		 * Entity primary key.
+		 * 
 		 * @type Array
 		 */
 		get _pk()
@@ -137,6 +146,7 @@ export default function() {
 
 		/**
 		 * Entity textual key, can be used to key DOM elements.
+		 * 
 		 * @type string
 		 */
 		get _key()
@@ -145,7 +155,8 @@ export default function() {
 		}
 
 		/**
-		 * Record status if any
+		 * Record status, if record exists.
+		 * 
 		 * @type number
 		 */
 		get _status()
@@ -156,8 +167,9 @@ export default function() {
 
 		/**
 		 * Returns entity primary URI.
-		 * @param {string} path - path appended to URI
-		 * @returns {string} primary URI
+		 * 
+		 * @param {string} [path = ''] - path appended to URI
+		 * @returns {string} entity URI
 		 */
 		_uri(path = '')
 		{
@@ -166,7 +178,10 @@ export default function() {
 
 		/**
 		 * Updates the entity, fetching data from server.
-		 * @param {boolean} [force=false] - forces update
+		 * By default, fetch data only if current data
+		 * is considered outdated.
+		 * 
+		 * @param {boolean} [force = false] - forces update
 		 * @param {string} [uri] - optional URI, if different from entity URI
 		 * @returns {this} self
 		 */
@@ -191,8 +206,10 @@ export default function() {
 		}
 
 		/**
-		 * Delete entities.
-		 * @param {string} uri - custom delete URI
+		 * Delete entity. Returns promise that resolves
+		 * when delete request is fullfilled.
+		 * 
+		 * @param {string} [uri] - custom delete URI
 		 * @returns {Promise} delete request promise
 		 */
 		async _delete(uri)
@@ -209,8 +226,11 @@ export default function() {
 		}
 
 		/**
-		 * Updates server data with a PUT request (sends complete entity data).
-		 * @param {Object} [data={}] - object with additional data, merged with entity data
+		 * Updates server data with a PUT request (sends
+		 * complete entity data). It returns a promise
+		 * that resolves when PUT request is fullfilled.
+		 * 
+		 * @param {Object} [data = {}] - object with additional data, merged with entity data
 		 * @param {string} [uri] - URI string if different from entity URI
 		 * @returns {Promise<this>} promise that resolves with self
 		 */
@@ -238,9 +258,10 @@ export default function() {
 		 * effectively patch the entity.
 		 * If patch function is not provided, data is simply
 		 * patched as-is.
-		 * @param {function} doPatch - patch function
-		 * @param {string} uri - optional URI, if different from entity URI
-		 * @returns {Promise} promise that resolves with patched entity
+		 * 
+		 * @param {function} [doPatch] - patch function
+		 * @param {string} [uri] - optional URI, if different from entity URI
+		 * @returns {Promise<this>} promise that resolves with patched entity
 		 */
 		_patch(doPatch, uri)
 		{
@@ -249,7 +270,7 @@ export default function() {
 				if (this.__record__)
 				{
 					/**
-					 * Dispatch request, and resolve patch promise
+					 * Dispatches request, and resolves patch promise.
 					 */
 					const patch = () => {
 
@@ -284,8 +305,9 @@ export default function() {
 		}
 
 		/**
-		 * Return a promise that resolves on record event.
-		 * @param {string} [event='update'] - record event
+		 * Returns a promise that resolves on specified event.
+		 * 
+		 * @param {string} [event = 'update'] - record event
 		 * @param {function} [what] - transform callback
 		 * @returns {Promise} entity or transform callback output
 		 */
@@ -310,9 +332,11 @@ export default function() {
 		}
 
 		/**
-		 * Returns the URI that identifies the entity identified by alias.
-		 * @param {Array} [alias=[]] - any set of values that identifies the entity
-		 * @param {string} [path=''] - optional path appended to the uri
+		 * Returns the URI associated to the entity
+		 * identified by alias.
+		 * 
+		 * @param {Array} [alias = []] - any set of values that identify the entity
+		 * @param {string} [path = ''] - optional path appended to the uri
 		 * @returns {string} entity URI
 		 */
 		static uri(alias = [], path = '')
@@ -321,9 +345,10 @@ export default function() {
 		}
 
 		/**
-		 * Returns entity identified by uri
-		 * @param {string} params fetch endpoint
-		 * @return {this} entity identified by uri
+		 * Returns entity at URI.
+		 * 
+		 * @param {string} uri - fetch endpoint URI string
+		 * @return {Model} entity identified by uri
 		 */
 		static fetch(uri)
 		{
@@ -351,8 +376,9 @@ export default function() {
 
 		/**
 		 * Returns entity identified by alias.
+		 * 
 		 * @param  {...any} alias - any set of values that identifies the entity
-		 * @returns {this} model instance fetched from server
+		 * @returns {Model} model instance fetched from server
 		 */
 		static get(...alias)
 		{
@@ -360,16 +386,16 @@ export default function() {
 		}
 
 		/**
-		 * Create a new entity.
+		 * Creates a new entity. Send a POST request
+		 * with the given parameters. Returns the created
+		 * entity (before the request is fullfilled).
+		 * 
 		 * @param {Object} params - creation parameters
 		 * @param {string?} uri - URI if different from default 
 		 * @returns {this} created entity
 		 */
 		static create(params, uri)
 		{
-			// Get entity URI
-			uri = uri || this.uri()
-
 			// Create record
 			let record = new Record(params)
 			let entity = new this(record.data, record)
@@ -378,7 +404,7 @@ export default function() {
 			record.asyncUpdate(async (fromRequest) => {
 				
 				// Update record from request
-				await fromRequest(request('POST', uri), dump(params))
+				await fromRequest(request('POST', uri || this._uri()), dump(params))
 
 				// Get entity's primary URI
 				const pkuri = entity._uri()

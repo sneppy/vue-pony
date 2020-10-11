@@ -1,5 +1,7 @@
 /**
  * Interface for models.
+ * 
+ * @interface
  */
 export class ModelType
 {
@@ -23,6 +25,7 @@ export class ModelType
 
 /**
  * Returns true if value is a model instance.
+ * 
  * @param {*} val value to test
  * @returns {boolean} true if is model
  */
@@ -30,6 +33,8 @@ export const isModel = (val) => val instanceof ModelType
 
 /**
  * Interface for set classes.
+ * 
+ * @interface
  */
 export class SetType
 {
@@ -53,6 +58,7 @@ export class SetType
 
 /**
  * Returns true if value is a set.
+ * 
  * @param {*} val value to test
  * @returns {boolean} true if is set
  */

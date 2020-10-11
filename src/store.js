@@ -16,6 +16,7 @@ catch (err)
 
 /**
  * Hashes the given key.
+ * 
  * @param {string} key - record key
  * @returns {string} hashed key
  */
@@ -23,6 +24,7 @@ const defaultHashFn = (key) => createHash('md5').update(key).digest('hex')
 
 /**
  * Returns a new instance of a store.
+ * 
  * @param {Object} [options={}] - store options
  * @param {boolean} [options.reactive=true] - if true store will be reactive
  * @param {KeyHashFunction} [options.hash=defaultHashFn] - function that hashes record keys
@@ -37,6 +39,7 @@ export default function Store(options = {}) {
 
 	/**
 	 * Returns record identified by key or `undefined` if not found.
+	 * 
 	 * @param {*} key - record key
 	 * @returns record identified by key
 	 */
@@ -48,6 +51,7 @@ export default function Store(options = {}) {
 
 	/**
 	 * Stores record identified by key and returns value.
+	 * 
 	 * @param {*} key - record key
 	 * @param {*} val - record value
 	 * @returns stored value
@@ -63,6 +67,7 @@ export default function Store(options = {}) {
 
 	/**
 	 * Reset a set of records identified by keys, or all records.
+	 * 
 	 * @param  {...*} keys - list of keys to reset
 	 */
 	const reset = (...keys) => {
@@ -83,6 +88,7 @@ export default function Store(options = {}) {
 
 	/**
 	 * Creates an alias to a given record.
+	 * 
 	 * @param {*} alias - alias key
 	 * @param {*} key - record key
 	 * @param {*} [val] - optional record value
@@ -102,6 +108,7 @@ export default function Store(options = {}) {
 
 	/**
 	 * Returns true if store has record identified by key.
+	 * 
 	 * @param {*} key - record key
 	 * @returns {boolean} true if record exists
 	 */

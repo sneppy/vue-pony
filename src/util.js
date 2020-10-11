@@ -3,6 +3,7 @@ import { isModel } from './types'
 
 /**
  * Returns wrapped value if not already array.
+ * 
  * @param {*} val - value to wrap in array
  * @returns {Array} wrapped value
  */
@@ -10,6 +11,7 @@ export const arrify = (val) => Array.isArray(val) ? val : [val]
 
 /**
  * Returns the first element of a single-value array or the value as-is.
+ * 
  * @param {*} val - value that must be dearrified
  * @returns {*} dearrified array or value as-is
  */
@@ -17,6 +19,7 @@ export const dearrify = (val) => val.length === 1 ? val[0] : val
 
 /**
  * Parses a string as an integer.
+ * 
  * @param {string} str - input string
  * @returns {number} integer value or not a number
  */
@@ -39,6 +42,7 @@ export const parseIdx = (str) => {
 
 /**
  * Replaces any entity found with its primary key.
+ * 
  * @param {*} val - value to dump
  * @return {*} transformed value
  */
