@@ -107,6 +107,17 @@ export default function(Type) {
 		}
 
 		/**
+		 * Record's HTTP status
+		 *
+		 * @type number
+		 */
+		get _status()
+		{
+			
+			return this.__record__.status
+		}
+
+		/**
 		 * Length of the set.
 		 * 
 		 * @type number
