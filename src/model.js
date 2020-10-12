@@ -175,6 +175,18 @@ export default function() {
 		{
 			return this.__type__.uri(this._pk, path)
 		}
+		
+		/**
+		 * Returns true if this and other refer to
+		 * the same entity.
+		 *
+		 * @param {Model} other - other entity
+		 * @returns {boolean} comparison result
+		 */
+		_equals(other)
+		{
+			return this.__data__ === other.__data__ || this._key === other._key
+		}
 
 		/**
 		 * Updates the entity, fetching data from server.
